@@ -287,6 +287,70 @@ BASE_TEMPLATE = '''
         </div>
     </div>
     
+    <!-- Modal pro editaci aplikace -->
+    <div class="modal fade" id="editAppModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editovat aplikaci</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="editAppForm" method="POST" action="/admin/edit_app">
+                    <div class="modal-body">
+                        <input type="hidden" id="editAppId" name="app_id">
+                        <div class="mb-3">
+                            <label class="form-label">Název aplikace</label>
+                            <input type="text" class="form-control" id="editAppName" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Ikona (emoji)</label>
+                            <select class="form-control" id="editAppIcon" name="icon" required>
+                                <option value="🚛">🚛 Správa vozidel</option>
+                                <option value="📍">📍 GPS tracking</option>
+                                <option value="📦">📦 Sklady</option>
+                                <option value="💰">💰 Účetnictví</option>
+                                <option value="📊">📊 Analýzy</option>
+                                <option value="📅">📅 Plánování</option>
+                                <option value="👥">👥 HR</option>
+                                <option value="📧">📧 Email</option>
+                                <option value="📋">📋 Dokumenty</option>
+                                <option value="⚙️">⚙️ Nastavení</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Popis</label>
+                            <textarea class="form-control" id="editAppDescription" name="description" rows="2" placeholder="Krátký popis aplikace"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Odkaz/Adresa</label>
+                            <input type="url" class="form-control" id="editAppUrl" name="url" placeholder="https://example.com">
+                            <small class="text-muted">Nechání prázdné = zůstane "Plánováno"</small>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" id="editRequirePassword" name="require_password">
+                            <label class="form-check-label" for="editRequirePassword">
+                                Vyžadovat heslo před přechodem
+                            </label>
+                        </div>
+                        <div class="mb-3" id="editPasswordField" style="display: none;">
+                            <label class="form-label">Heslo pro přístup</label>
+                            <input type="password" class="form-control" id="editAppPassword" name="access_password" placeholder="Heslo pro přístup k aplikaci">
+                        </div>
+                        <hr>
+                        <div class="text-danger">
+                            <h6>Nebezpečná zóna</h6>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="deleteApp()">Smazat aplikaci</button>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zrušit</button>
+                        <button type="submit" class="btn btn-primary">Uložit změny</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function toggleSection(sectionId) {
@@ -373,6 +437,16 @@ BASE_TEMPLATE = '''
                     passwordField.style.display = this.checked ? 'block' : 'none';
                 });
             }
+            
+            // Pro editaci aplikace
+            const editCheckbox = document.getElementById('editRequirePassword');
+            const editPasswordField = document.getElementById('editPasswordField');
+            
+            if (editCheckbox) {
+                editCheckbox.addEventListener('change', function() {
+                    editPasswordField.style.display = this.checked ? 'block' : 'none';
+                });
+            }
         });
         
         function openApp(appId, url, requiresPassword) {
@@ -391,6 +465,52 @@ BASE_TEMPLATE = '''
                 }
             } else {
                 window.open(url, '_blank');
+            }
+        }
+        
+        function editAppContext(appId) {
+            // Najdeme aplikaci podle ID
+            const apps = {
+                1: {name: 'Správa vozidel', icon: '🚛', description: 'Modul pro správu vozového parku', url: '', require_password: false, access_password: ''},
+                2: {name: 'GPS tracking', icon: '📍', description: 'Sledování pozice vozidel', url: '', require_password: false, access_password: ''},
+                3: {name: 'Sklady', icon: '📦', description: 'Správa skladových zásob', url: '', require_password: false, access_password: ''},
+                4: {name: 'Účetnictví', icon: '💰', description: 'Finanční modul', url: '', require_password: false, access_password: ''}
+            };
+            
+            // V reálné aplikaci by zde byl AJAX call pro získání dat
+            const app = apps[appId];
+            if (app) {
+                document.getElementById('editAppId').value = appId;
+                document.getElementById('editAppName').value = app.name;
+                document.getElementById('editAppIcon').value = app.icon;
+                document.getElementById('editAppDescription').value = app.description || '';
+                document.getElementById('editAppUrl').value = app.url || '';
+                document.getElementById('editRequirePassword').checked = app.require_password || false;
+                document.getElementById('editAppPassword').value = app.access_password || '';
+                
+                // Zobraz/skryj pole pro heslo
+                document.getElementById('editPasswordField').style.display = app.require_password ? 'block' : 'none';
+                
+                const modal = new bootstrap.Modal(document.getElementById('editAppModal'));
+                modal.show();
+            }
+        }
+        
+        function deleteApp() {
+            const appId = document.getElementById('editAppId').value;
+            if (confirm('Opravdu chcete smazat tuto aplikaci? Tato akce je nevratná!')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/admin/delete_app';
+                
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'app_id';
+                idInput.value = appId;
+                
+                form.appendChild(idInput);
+                document.body.appendChild(form);
+                form.submit();
             }
         }
     </script>
@@ -465,9 +585,12 @@ def index():
         onclick = f"openApp({app['id']}, '{url}', {str(require_password).lower()})" if url else "alert('Aplikace je ve vývoji')"
         cursor_style = "cursor: pointer;" if url or app.get('status') == 'planned' else ""
         
+        # Přidáme context menu pro adminy
+        context_menu = f"oncontextmenu='editAppContext({app['id']}); return false;'" if is_admin else ""
+        
         apps_html += f'''
         <div class="col-6 mb-2">
-            <div class="card app-tile text-center p-2" onclick="{onclick}" style="{cursor_style}">
+            <div class="card app-tile text-center p-2" onclick="{onclick}" {context_menu} style="{cursor_style}">
                 <div style="font-size: 1.5rem;">{app["icon"]}</div>
                 <h6 class="small">{app["name"]}</h6>
                 <span class="badge {status_class} small">{status_text}</span>
@@ -875,6 +998,66 @@ def add_app():
     
     APPLICATIONS.append(new_app)
     flash('Aplikace byla uspesne pridana!', 'success')
+    return redirect(url_for('index'))
+
+@app.route('/admin/edit_app', methods=['POST'])
+def edit_app():
+    """Editace existujici aplikace."""
+    if 'user' not in session or session['user']['role'] != 'admin':
+        flash('Nemate opravneni!', 'error')
+        return redirect(url_for('index'))
+    
+    app_id = int(request.form.get('app_id'))
+    name = request.form.get('name')
+    icon = request.form.get('icon')
+    description = request.form.get('description', '')
+    url = request.form.get('url', '')
+    require_password = 'require_password' in request.form
+    access_password = request.form.get('access_password', '')
+    
+    if not name or not icon:
+        flash('Nazev a ikona jsou povinne!', 'error')
+        return redirect(url_for('index'))
+    
+    # Najdeme aplikaci podle ID
+    app_to_edit = None
+    for i, app in enumerate(APPLICATIONS):
+        if app['id'] == app_id:
+            app_to_edit = i
+            break
+    
+    if app_to_edit is None:
+        flash('Aplikace nenalezena!', 'error')
+        return redirect(url_for('index'))
+    
+    # Aktualizujeme aplikaci
+    APPLICATIONS[app_to_edit].update({
+        'name': name,
+        'icon': icon,
+        'description': description,
+        'status': 'active' if url else 'planned',
+        'url': url,
+        'require_password': require_password,
+        'access_password': access_password
+    })
+    
+    flash('Aplikace byla uspesne aktualizovana!', 'success')
+    return redirect(url_for('index'))
+
+@app.route('/admin/delete_app', methods=['POST'])
+def delete_app():
+    """Smazani aplikace."""
+    if 'user' not in session or session['user']['role'] != 'admin':
+        flash('Nemate opravneni!', 'error')
+        return redirect(url_for('index'))
+    
+    app_id = int(request.form.get('app_id'))
+    
+    # Najdeme a smazeme aplikaci
+    global APPLICATIONS
+    APPLICATIONS = [app for app in APPLICATIONS if app['id'] != app_id]
+    
+    flash('Aplikace byla uspesne smazana!', 'success')
     return redirect(url_for('index'))
 
 @app.route('/login', methods=['GET', 'POST'])
