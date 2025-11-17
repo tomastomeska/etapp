@@ -988,6 +988,7 @@ def add_app():
     url = request.form.get('url', '')
     require_password = 'require_password' in request.form
     access_password = request.form.get('access_password', '')
+    visible_for_ridic = 'visible_for_ridic' in request.form
     
     if not name or not icon:
         flash('Nazev a ikona jsou povinne!', 'error')
@@ -1026,6 +1027,7 @@ def edit_app():
     url = request.form.get('url', '')
     require_password = 'require_password' in request.form
     access_password = request.form.get('access_password', '')
+    visible_for_ridic = 'visible_for_ridic' in request.form
     
     if not name or not icon:
         flash('Nazev a ikona jsou povinne!', 'error')
