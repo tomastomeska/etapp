@@ -79,10 +79,10 @@ MESSAGES = [
 ]
 
 APPLICATIONS = [
-    {'id': 1, 'name': 'Sprava vozidel', 'icon': '🚛', 'status': 'planned', 'description': 'Modul pro spravu vozoveho parku'},
-    {'id': 2, 'name': 'GPS tracking', 'icon': '📍', 'status': 'planned', 'description': 'Sledovani pozice vozidel'},
-    {'id': 3, 'name': 'Sklady', 'icon': '📦', 'status': 'planned', 'description': 'Sprava skladovych zasob'},
-    {'id': 4, 'name': 'Ucetnictvi', 'icon': '💰', 'status': 'planned', 'description': 'Financni modul'},
+    {'id': 1, 'name': 'Sprava vozidel', 'icon': '🚛', 'status': 'planned', 'description': 'Modul pro spravu vozoveho parku', 'visible_for_ridic': True},
+    {'id': 2, 'name': 'GPS tracking', 'icon': '📍', 'status': 'planned', 'description': 'Sledovani pozice vozidel', 'visible_for_ridic': True},
+    {'id': 3, 'name': 'Sklady', 'icon': '📦', 'status': 'planned', 'description': 'Sprava skladovych zasob', 'visible_for_ridic': False},
+    {'id': 4, 'name': 'Ucetnictvi', 'icon': '💰', 'status': 'planned', 'description': 'Financni modul', 'visible_for_ridic': False},
 ]
 
 BASE_TEMPLATE = '''
@@ -128,11 +128,11 @@ BASE_TEMPLATE = '''
         <div class="container-fluid">
             <a class="navbar-brand logo" href="/">🚛 European Transport CZ</a>
             <div class="navbar-nav ms-auto">
-                {% if session.user %}
+                {% if session.user_id %}
                     <span class="navbar-text me-3">
-                        {{ session.user.avatar }} {{ session.user.name }}
-                        <span class="badge ms-1 {{ 'admin-badge' if session.user.role == 'admin' else 'user-badge' }}">
-                            {{ session.user.role|title }}
+                        👤 {{ session.full_name }}
+                        <span class="badge ms-1 {{ 'admin-badge' if session.role == 'admin' else 'user-badge' }}">
+                            {{ {'admin': 'Admin', 'ridic': 'Řidič', 'administrativa': 'Administrativa'}.get(session.role, session.role|title) }}
                         </span>
                     </span>
                     <a class="nav-link" href="/logout"><i class="bi bi-box-arrow-right"></i> Odhlasit</a>
@@ -273,6 +273,12 @@ BASE_TEMPLATE = '''
                                 Vyžadovat heslo před přechodem
                             </label>
                         </div>
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" name="visible_for_ridic" id="visibleForRidic" checked>
+                            <label class="form-check-label" for="visibleForRidic">
+                                Viditelné pro profil Řidič
+                            </label>
+                        </div>
                         <div class="mb-3" id="passwordField" style="display: none;">
                             <label class="form-label">Heslo pro přístup</label>
                             <input type="password" class="form-control" name="access_password" placeholder="Heslo pro přístup k aplikaci">
@@ -330,6 +336,12 @@ BASE_TEMPLATE = '''
                             <input type="checkbox" class="form-check-input" id="editRequirePassword" name="require_password">
                             <label class="form-check-label" for="editRequirePassword">
                                 Vyžadovat heslo před přechodem
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" id="editVisibleForRidic" name="visible_for_ridic">
+                            <label class="form-check-label" for="editVisibleForRidic">
+                                Viditelné pro profil Řidič
                             </label>
                         </div>
                         <div class="mb-3" id="editPasswordField" style="display: none;">
@@ -521,10 +533,15 @@ BASE_TEMPLATE = '''
 @app.route('/')
 def index():
     """Hlavni dashboard - vse na jedne strance."""
-    if 'user' not in session:
+    if 'user_id' not in session:
         return redirect(url_for('login'))
     
-    user = session['user']
+    user_id = session['user_id']
+    user = USERS.get(user_id)
+    if not user:
+        session.clear()
+        return redirect(url_for('login'))
+    
     is_admin = user['role'] == 'admin'
     
     # Pocitani statistik
@@ -574,9 +591,13 @@ def index():
         </div>
         '''
     
-    # Aplikace pro levy panel
+    # Aplikace pro levy panel - filtrujeme podle role
     apps_html = ""
-    for app in APPLICATIONS:
+    filtered_apps = APPLICATIONS
+    if user['role'] == 'ridic':
+        filtered_apps = [app for app in APPLICATIONS if app.get('visible_for_ridic', False)]
+    
+    for app in filtered_apps:
         status_text = "Plánováno" if app.get('status') == 'planned' else "Dostupné"
         status_class = "bg-warning" if app.get('status') == 'planned' else "bg-success"
         url = app.get('url', '')
@@ -755,7 +776,7 @@ def index():
 @app.route('/add_news', methods=['POST'])
 def add_news():
     """Pridani nove novinky."""
-    if 'user' not in session or session['user']['role'] != 'admin':
+    if 'user_id' not in session or session.get('role') != 'admin':
         flash('Nemate opravneni!', 'error')
         return redirect(url_for('index'))
     
@@ -767,7 +788,7 @@ def add_news():
         'id': max([n['id'] for n in NEWS], default=0) + 1,
         'title': title,
         'content': content,
-        'author': session['user']['name'],
+        'author': session.get('full_name', 'Neznámý'),
         'created': datetime.now().strftime('%Y-%m-%d %H:%M'),
         'featured': featured,
         'comments': []
@@ -780,172 +801,89 @@ def add_news():
 @app.route('/edit_profile', methods=['POST'])
 def edit_profile():
     """Editace profilu uzivatele."""
-    if 'user' not in session:
+    if 'user_id' not in session:
         flash('Nejste prihlaseni!', 'error')
         return redirect(url_for('login'))
     
-    user_email = session['user']['email']
-    first_name = request.form.get('first_name', '').strip()
-    last_name = request.form.get('last_name', '').strip()
+    user_id = session['user_id']
+    user = USERS.get(user_id)
+    if not user:
+        session.clear()
+        return redirect(url_for('login'))
+    
+    username = request.form.get('username', '').strip()
+    full_name = request.form.get('full_name', '').strip()
     email = request.form.get('email', '').lower().strip()
-    avatar = request.form.get('avatar', '👤')
     current_password = request.form.get('current_password', '')
     new_password = request.form.get('new_password', '')
     confirm_password = request.form.get('confirm_password', '')
     
     # Validace
-    if not first_name:
-        flash('Jmeno je povinne!', 'error')
+    if not username:
+        flash('Uživatelské jméno je povinné!', 'error')
         return redirect(url_for('index'))
     
+    if not full_name:
+        flash('Celé jméno je povinné!', 'error')
+        return redirect(url_for('index'))
+        
     if not email:
-        flash('Email je povinny!', 'error')
+        flash('Email je povinný!', 'error')
         return redirect(url_for('index'))
     
-    # Kontrola, zda email uz neexistuje (pokud se menil)
-    if email != user_email and email in USERS:
-        flash('Tento email uz pouziva jiny uzivatel!', 'error')
-        return redirect(url_for('index'))
+    # Kontrola duplicit (kromě současného uživatele)
+    for uid, u in USERS.items():
+        if uid != user_id:
+            if u['username'] == username:
+                flash('Toto uživatelské jméno už používá jiný uživatel!', 'error')
+                return redirect(url_for('index'))
+            if u['email'] == email:
+                flash('Tento email už používá jiný uživatel!', 'error')
+                return redirect(url_for('index'))
     
-    # Zmena hesla
+    # Změna hesla
     if new_password:
         if not current_password:
-            flash('Pro zmenu hesla musíte zadat soucasne heslo!', 'error')
+            flash('Pro změnu hesla musíte zadat současné heslo!', 'error')
             return redirect(url_for('index'))
         
-        if not check_password_hash(USERS[user_email]['password'], current_password):
-            flash('Soucasne heslo je neplatne!', 'error')
+        if not check_password_hash(user['password'], current_password):
+            flash('Současné heslo je neplatné!', 'error')
             return redirect(url_for('index'))
         
         if new_password != confirm_password:
-            flash('Nova hesla se neshoduji!', 'error')
+            flash('Nová hesla se neshodují!', 'error')
             return redirect(url_for('index'))
         
         if len(new_password) < 6:
-            flash('Heslo musi mit alespon 6 znaku!', 'error')
+            flash('Heslo musí mít alespoň 6 znaků!', 'error')
             return redirect(url_for('index'))
     
     # Aktualizace dat
-    user_data = USERS[user_email].copy()
-    user_data['name'] = f"{first_name} {last_name}".strip()
-    
-    # Avatar muze menit jen admin
-    if session['user']['role'] == 'admin':
-        user_data['avatar'] = avatar
+    USERS[user_id].update({
+        'username': username,
+        'full_name': full_name,
+        'email': email
+    })
     
     if new_password:
-        user_data['password'] = generate_password_hash(new_password)
-    
-    # Pokud se email zmenil, presuneme data
-    if email != user_email:
-        USERS[email] = user_data
-        del USERS[user_email]
-        session['user']['email'] = email
-    else:
-        USERS[user_email] = user_data
+        USERS[user_id]['password'] = generate_password_hash(new_password)
     
     # Aktualizace session
-    session['user']['name'] = user_data['name']
-    session['user']['avatar'] = user_data['avatar']
+    session['username'] = username
+    session['full_name'] = full_name
     
-    flash('Profil byl uspesne aktualizovan!', 'success')
+    flash('Profil byl úspěšně aktualizován!', 'success')
     return redirect(url_for('index'))
 
-@app.route('/admin/edit_user', methods=['POST'])
-def admin_edit_user():
-    """Editace uzivatele adminem."""
-    if 'user' not in session or session['user']['role'] != 'admin':
-        flash('Nemáte opravneni!', 'error')
-        return redirect(url_for('index'))
-    
-    user_email = request.form.get('user_email')
-    first_name = request.form.get('first_name', '').strip()
-    last_name = request.form.get('last_name', '').strip()
-    email = request.form.get('email', '').lower().strip()
-    role = request.form.get('role', 'user')
-    avatar = request.form.get('avatar', '👤')
-    status = request.form.get('status', 'online')
-    reset_password = 'reset_password' in request.form
-    
-    # Validace
-    if not user_email and not email:
-        flash('Email je povinny!', 'error')
-        return redirect(url_for('index'))
-    
-    if not first_name:
-        flash('Jmeno je povinne!', 'error')
-        return redirect(url_for('index'))
-    
-    # Kontrola duplicitniho emailu
-    if user_email and email != user_email and email in USERS:
-        flash('Tento email uz pouziva jiny uzivatel!', 'error')
-        return redirect(url_for('index'))
-    
-    if user_email:  # Editace existujiciho
-        if user_email not in USERS:
-            flash('Uzivatel nenalezen!', 'error')
-            return redirect(url_for('index'))
-        
-        user_data = USERS[user_email].copy()
-        user_data['name'] = f"{first_name} {last_name}".strip()
-        user_data['role'] = role
-        user_data['avatar'] = avatar
-        user_data['status'] = status
-        
-        if reset_password:
-            user_data['password'] = generate_password_hash('user123')
-        
-        # Presun dat pri zmene emailu
-        if email != user_email:
-            USERS[email] = user_data
-            del USERS[user_email]
-        else:
-            USERS[user_email] = user_data
-        
-        flash('Uzivatel byl uspesne upraven!', 'success')
-    
-    return redirect(url_for('index'))
+# Starý admin_edit_user route byl nahrazen novým systémem uživatelů
 
-@app.route('/admin/add_user', methods=['POST'])
-def admin_add_user():
-    """Pridani noveho uzivatele adminem."""
-    if 'user' not in session or session['user']['role'] != 'admin':
-        flash('Nemate opravneni!', 'error')
-        return redirect(url_for('index'))
-    
-    first_name = request.form.get('first_name', '').strip()
-    last_name = request.form.get('last_name', '').strip()
-    email = request.form.get('email', '').lower().strip()
-    role = request.form.get('role', 'user')
-    avatar = request.form.get('avatar', '👤')
-    status = request.form.get('status', 'online')
-    
-    if not first_name or not email:
-        flash('Jmeno a email jsou povinne!', 'error')
-        return redirect(url_for('index'))
-    
-    if email in USERS:
-        flash('Uzivatel s timto emailem uz existuje!', 'error')
-        return redirect(url_for('index'))
-    
-    # Vytvoreni noveho uzivatele
-    USERS[email] = {
-        'id': max([u['id'] for u in USERS.values()], default=0) + 1,
-        'password': generate_password_hash('user123'),
-        'name': f"{first_name} {last_name}".strip(),
-        'role': role,
-        'avatar': avatar,
-        'status': status,
-        'created': datetime.now().strftime('%Y-%m-%d')
-    }
-    
-    flash(f'Uzivatel {email} byl uspesne pridan! Vychozi heslo: user123', 'success')
-    return redirect(url_for('index'))
+# Starý admin_add_user route byl odstraněn
 
 @app.route('/admin/toggle_user_status', methods=['POST'])
 def admin_toggle_user_status():
     """Prepnuti statusu uzivatele."""
-    if 'user' not in session or session['user']['role'] != 'admin':
+    if 'user_id' not in session or session.get('role') != 'admin':
         flash('Nemate opravneni!', 'error')
         return redirect(url_for('index'))
     
@@ -967,7 +905,7 @@ def admin_toggle_user_status():
 @app.route('/admin/add_app', methods=['POST'])
 def add_app():
     """Pridani nove aplikace."""
-    if 'user' not in session or session['user']['role'] != 'admin':
+    if 'user_id' not in session or session.get('role') != 'admin':
         flash('Nemate opravneni!', 'error')
         return redirect(url_for('index'))
     
@@ -993,7 +931,8 @@ def add_app():
         'status': 'active' if url else 'planned',
         'url': url,
         'require_password': require_password,
-        'access_password': access_password
+        'access_password': access_password,
+        'visible_for_ridic': visible_for_ridic
     }
     
     APPLICATIONS.append(new_app)
@@ -1003,7 +942,7 @@ def add_app():
 @app.route('/admin/edit_app', methods=['POST'])
 def edit_app():
     """Editace existujici aplikace."""
-    if 'user' not in session or session['user']['role'] != 'admin':
+    if 'user_id' not in session or session.get('role') != 'admin':
         flash('Nemate opravneni!', 'error')
         return redirect(url_for('index'))
     
@@ -1038,7 +977,8 @@ def edit_app():
         'status': 'active' if url else 'planned',
         'url': url,
         'require_password': require_password,
-        'access_password': access_password
+        'access_password': access_password,
+        'visible_for_ridic': visible_for_ridic
     })
     
     flash('Aplikace byla uspesne aktualizovana!', 'success')
@@ -1047,7 +987,7 @@ def edit_app():
 @app.route('/admin/delete_app', methods=['POST'])
 def delete_app():
     """Smazani aplikace."""
-    if 'user' not in session or session['user']['role'] != 'admin':
+    if 'user_id' not in session or session.get('role') != 'admin':
         flash('Nemate opravneni!', 'error')
         return redirect(url_for('index'))
     
@@ -1070,13 +1010,25 @@ def login():
         email = request.form.get('email', '').lower()
         password = request.form.get('password', '')
         
-        if email in USERS and check_password_hash(USERS[email]['password'], password):
-            session['user'] = USERS[email].copy()
-            session['user']['email'] = email
-            flash(f'Vitejte, {USERS[email]["name"]}!', 'success')
-            return redirect(url_for('index'))
+        # Najdeme uživatele podle emailu
+        user_found = None
+        for user in USERS.values():
+            if user['email'].lower() == email:
+                user_found = user
+                break
+        
+        if user_found and check_password_hash(user_found['password'], password):
+            if not user_found.get('active', True):
+                flash('Váš účet je deaktivován. Kontaktujte administrátora.', 'error')
+            else:
+                session['user_id'] = user_found['id']
+                session['username'] = user_found['username']
+                session['role'] = user_found['role']
+                session['full_name'] = user_found['full_name']
+                flash(f'Vítejte, {user_found["full_name"]}!', 'success')
+                return redirect(url_for('index'))
         else:
-            flash('Neplatne prihlasovaci udaje!', 'error')
+            flash('Neplatné přihlašovací údaje!', 'error')
     
     login_form = '''
     <div class="row justify-content-center">
@@ -1116,8 +1068,8 @@ def login():
 @app.route('/logout')
 def logout():
     """Odhlaseni."""
-    name = session.get('user', {}).get('name', 'Uzivatel')
-    session.pop('user', None)
+    name = session.get('full_name', 'Uživatel')
+    session.clear()
     flash(f'Nashledanou, {name}!', 'info')
     return redirect(url_for('login'))
 
@@ -1131,6 +1083,347 @@ def api_stats():
         "applications": len(APPLICATIONS),
         "timestamp": datetime.now().isoformat()
     }
+
+@app.route('/users')
+def users():
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    # Vygenerování HTML pro seznam uživatelů
+    users_html = ''
+    for user in USERS.values():
+        status_badge = '<span class="badge bg-success">Aktivní</span>' if user.get('active', True) else '<span class="badge bg-danger">Neaktivní</span>'
+        role_badge_class = 'admin-badge' if user['role'] == 'admin' else 'user-badge'
+        role_name = {'admin': 'Admin', 'ridic': 'Řidič', 'administrativa': 'Administrativa'}.get(user['role'], user['role'].title())
+        
+        delete_button = f'<button class="btn btn-outline-danger btn-sm" onclick="deleteUser({user["id"]}, \\"{user["username"]}\\")"><i class="bi bi-trash"></i> Smazat</button>' if user['id'] != session.get('user_id') else '<span class="text-muted small">Vlastní účet</span>'
+        
+        users_html += f'''
+        <tr>
+            <td><img src="{user.get('avatar', 'https://via.placeholder.com/40')}" alt="Avatar" class="rounded-circle" width="40" height="40"></td>
+            <td>
+                <strong>{user['full_name']}</strong><br>
+                <small class="text-muted">{user['username']}</small>
+            </td>
+            <td>{user['email']}</td>
+            <td><span class="badge {role_badge_class}">{role_name}</span></td>
+            <td>{status_badge}</td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary btn-sm" onclick="editUser({user['id']}, '{user['username']}', '{user['email']}', '{user['full_name']}', '{user['role']}', {str(user.get('active', True)).lower()})">
+                        <i class="bi bi-pencil"></i> Upravit
+                    </button>
+                    {delete_button}
+                </div>
+            </td>
+        </tr>
+        '''
+    
+    content = f'''
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-4">
+                <div class="sidebar p-3">
+                    <h5><i class="bi bi-people-fill"></i> Správa uživatelů</h5>
+                    <hr>
+                    
+                    <!-- Statistiky -->
+                    <div class="mb-4">
+                        <h6>Statistiky</h6>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="border rounded p-2">
+                                    <h4>{len(USERS)}</h4>
+                                    <small>Uživatelů</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border rounded p-2">
+                                    <h4>{len([u for u in USERS.values() if u.get('active', True)])}</h4>
+                                    <small>Aktivních</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border rounded p-2">
+                                    <h4>{len([u for u in USERS.values() if u['role'] == 'admin'])}</h4>
+                                    <small>Adminů</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tlačítko pro přidání uživatele -->
+                    <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                        <i class="bi bi-person-plus"></i> Přidat uživatele
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Hlavní obsah -->
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-people"></i> Seznam uživatelů</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Avatar</th>
+                                        <th>Jméno</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Status</th>
+                                        <th>Akce</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {users_html}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Návrat na dashboard -->
+                <div class="mt-3">
+                    <a href="/" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> Zpět na dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal pro přidání uživatele -->
+    <div class="modal fade" id="addUserModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-person-plus"></i> Přidat nového uživatele</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="/admin/add_user">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Uživatelské jméno</label>
+                            <input type="text" class="form-control" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Celé jméno</label>
+                            <input type="text" class="form-control" name="full_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Heslo</label>
+                            <input type="password" class="form-control" name="password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Role</label>
+                            <select class="form-control" name="role" required>
+                                <option value="ridic">Řidič</option>
+                                <option value="administrativa">Administrativa</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zrušit</button>
+                        <button type="submit" class="btn btn-success">Vytvořit uživatele</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal pro editaci uživatele -->
+    <div class="modal fade" id="editUserModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-pencil"></i> Upravit uživatele</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="editUserForm" method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Uživatelské jméno</label>
+                            <input type="text" class="form-control" id="editUsername" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Celé jméno</label>
+                            <input type="text" class="form-control" id="editFullName" name="full_name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="editUserEmail" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Role</label>
+                            <select class="form-control" id="editUserRole" name="role" required>
+                                <option value="ridic">Řidič</option>
+                                <option value="administrativa">Administrativa</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nové heslo (ponechte prázdné pro beze změny)</label>
+                            <input type="password" class="form-control" name="password">
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="editUserActive" name="active" checked>
+                            <label class="form-check-label" for="editUserActive">Účet je aktivní</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zrušit</button>
+                        <button type="submit" class="btn btn-primary">Uložit změny</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    function editUser(id, username, email, fullName, role, active) {{
+        document.getElementById('editUserForm').action = '/admin/edit_user/' + id;
+        document.getElementById('editUsername').value = username;
+        document.getElementById('editUserEmail').value = email;
+        document.getElementById('editFullName').value = fullName;
+        document.getElementById('editUserRole').value = role;
+        document.getElementById('editUserActive').checked = active;
+        
+        new bootstrap.Modal(document.getElementById('editUserModal')).show();
+    }}
+    
+    function deleteUser(id, username) {{
+        if (confirm('Opravdu chcete smazat uživatele ' + username + '?')) {{
+            fetch('/admin/delete_user/' + id, {{
+                method: 'POST',
+                headers: {{
+                    'Content-Type': 'application/json',
+                }}
+            }}).then(() => {{
+                location.reload();
+            }});
+        }}
+    }}
+    </script>
+    '''
+    
+    return render_template_string(BASE_TEMPLATE, title="Správa uživatelů", content=content)
+
+@app.route('/admin/add_user', methods=['POST'])
+def add_user():
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    username = request.form.get('username', '').strip()
+    email = request.form.get('email', '').strip()
+    password = request.form.get('password', '').strip()
+    role = request.form.get('role', 'ridic')
+    full_name = request.form.get('full_name', '').strip()
+    
+    # Validace
+    if not all([username, email, password, full_name]):
+        flash('Všechna pole jsou povinná.', 'error')
+        return redirect(url_for('users'))
+    
+    # Kontrola duplicit
+    for user in USERS.values():
+        if user['username'] == username:
+            flash('Uživatelské jméno již existuje.', 'error')
+            return redirect(url_for('users'))
+        if user['email'] == email:
+            flash('Email již existuje.', 'error')
+            return redirect(url_for('users'))
+    
+    # Vytvoření nového uživatele
+    new_id = max(USERS.keys()) + 1
+    USERS[new_id] = {
+        'id': new_id,
+        'username': username,
+        'email': email,
+        'password': generate_password_hash(password),
+        'full_name': full_name,
+        'role': role,
+        'avatar': 'https://via.placeholder.com/50',
+        'active': True
+    }
+    
+    flash(f'Uživatel {username} byl úspěšně vytvořen.', 'success')
+    return redirect(url_for('users'))
+
+@app.route('/admin/edit_user/<int:user_id>', methods=['POST'])
+def edit_user(user_id):
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    if user_id not in USERS:
+        flash('Uživatel nebyl nalezen.', 'error')
+        return redirect(url_for('users'))
+    
+    username = request.form.get('username', '').strip()
+    email = request.form.get('email', '').strip()
+    role = request.form.get('role', 'ridic')
+    full_name = request.form.get('full_name', '').strip()
+    password = request.form.get('password', '').strip()
+    active = 'active' in request.form
+    
+    # Validace
+    if not all([username, email, full_name]):
+        flash('Uživatelské jméno, email a celé jméno jsou povinné.', 'error')
+        return redirect(url_for('users'))
+    
+    # Kontrola duplicit (kromě současného uživatele)
+    for uid, user in USERS.items():
+        if uid != user_id:
+            if user['username'] == username:
+                flash('Uživatelské jméno již existuje.', 'error')
+                return redirect(url_for('users'))
+            if user['email'] == email:
+                flash('Email již existuje.', 'error')
+                return redirect(url_for('users'))
+    
+    # Aktualizace uživatele
+    USERS[user_id].update({
+        'username': username,
+        'email': email,
+        'full_name': full_name,
+        'role': role,
+        'active': active
+    })
+    
+    # Změna hesla pokud je zadáno
+    if password:
+        USERS[user_id]['password'] = generate_password_hash(password)
+    
+    flash(f'Uživatel {username} byl úspěšně aktualizován.', 'success')
+    return redirect(url_for('users'))
+
+@app.route('/admin/delete_user/<int:user_id>', methods=['POST'])
+def delete_user(user_id):
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    # Zamezení mazání vlastního účtu
+    if user_id == session.get('user_id'):
+        flash('Nelze smazat vlastní účet.', 'error')
+        return redirect(url_for('users'))
+    
+    if user_id in USERS:
+        username = USERS[user_id]['username']
+        del USERS[user_id]
+        flash(f'Uživatel {username} byl úspěšně smazán.', 'success')
+    else:
+        flash('Uživatel nebyl nalezen.', 'error')
+    
+    return redirect(url_for('users'))
 
 if __name__ == '__main__':
     print("="*60)
