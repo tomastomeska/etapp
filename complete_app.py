@@ -5,6 +5,7 @@ European Transport CZ - Kompletni funkci aplikace
 """
 
 import os
+import json
 from datetime import datetime
 from flask import Flask, render_template_string, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -868,6 +869,7 @@ def add_news():
     }
     
     NEWS.insert(0, new_news)
+    save_news()  # Uloží změny do JSON
     flash('Novinka byla uspesne pridana!', 'success')
     return redirect(url_for('index'))
 
@@ -1010,6 +1012,7 @@ def add_app():
     }
     
     APPLICATIONS.append(new_app)
+    save_applications()  # Uloží změny do JSON
     flash('Aplikace byla uspesne pridana!', 'success')
     return redirect(url_for('index'))
 
@@ -1055,6 +1058,7 @@ def edit_app():
         'access_password': access_password,
         'visible_for_ridic': visible_for_ridic
     })
+    save_applications()  # Uloží změny do JSON
     
     flash('Aplikace byla uspesne aktualizovana!', 'success')
     return redirect(url_for('index'))
@@ -1071,6 +1075,7 @@ def delete_app():
     # Najdeme a smazeme aplikaci
     global APPLICATIONS
     APPLICATIONS = [app for app in APPLICATIONS if app['id'] != app_id]
+    save_applications()  # Uloží změny do JSON
     
     flash('Aplikace byla uspesne smazana!', 'success')
     return redirect(url_for('index'))
@@ -1549,7 +1554,73 @@ def delete_news(news_id):
     
     return redirect(url_for('index'))
 
+# Funkce pro perzistentní uložení dat
+def save_users():
+    """Uloží uživatele do JSON souboru."""
+    users_list = list(USERS.values())
+    with open('data_users.json', 'w', encoding='utf-8') as f:
+        json.dump(users_list, f, ensure_ascii=False, indent=2)
+
+def save_applications():
+    """Uloží aplikace do JSON souboru."""
+    with open('data_applications.json', 'w', encoding='utf-8') as f:
+        json.dump(APPLICATIONS, f, ensure_ascii=False, indent=2)
+
+def save_news():
+    """Uloží novinky do JSON souboru."""
+    with open('data_news.json', 'w', encoding='utf-8') as f:
+        json.dump(NEWS, f, ensure_ascii=False, indent=2)
+
+def save_messages():
+    """Uloží zprávy do JSON souboru."""
+    with open('data_messages.json', 'w', encoding='utf-8') as f:
+        json.dump(MESSAGES, f, ensure_ascii=False, indent=2)
+
+def load_data():
+    """Načte data ze souborů při startu aplikace."""
+    global USERS, APPLICATIONS, NEWS, MESSAGES
+    
+    # Načítání uživatelů
+    if os.path.exists('data_users.json'):
+        try:
+            with open('data_users.json', 'r', encoding='utf-8') as f:
+                users_list = json.load(f)
+                USERS = {user['id']: user for user in users_list}
+                print(f"✅ Načteno {len(USERS)} uživatelů z data_users.json")
+        except Exception as e:
+            print(f"⚠️ Chyba při načítání uživatelů: {e}")
+    
+    # Načítání aplikací
+    if os.path.exists('data_applications.json'):
+        try:
+            with open('data_applications.json', 'r', encoding='utf-8') as f:
+                APPLICATIONS[:] = json.load(f)
+                print(f"✅ Načteno {len(APPLICATIONS)} aplikací z data_applications.json")
+        except Exception as e:
+            print(f"⚠️ Chyba při načítání aplikací: {e}")
+    
+    # Načítání novinek
+    if os.path.exists('data_news.json'):
+        try:
+            with open('data_news.json', 'r', encoding='utf-8') as f:
+                NEWS[:] = json.load(f)
+                print(f"✅ Načteno {len(NEWS)} novinek z data_news.json")
+        except Exception as e:
+            print(f"⚠️ Chyba při načítání novinek: {e}")
+    
+    # Načítání zpráv
+    if os.path.exists('data_messages.json'):
+        try:
+            with open('data_messages.json', 'r', encoding='utf-8') as f:
+                MESSAGES[:] = json.load(f)
+                print(f"✅ Načteno {len(MESSAGES)} zpráv z data_messages.json")
+        except Exception as e:
+            print(f"⚠️ Chyba při načítání zpráv: {e}")
+
 if __name__ == '__main__':
+    # Načtení dat při startu
+    load_data()
+    
     print("="*60)
     print("🚀 European Transport CZ - KOMPLETNI APLIKACE")
     print("="*60)

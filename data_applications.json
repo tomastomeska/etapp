@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "name": "Sprava vozidel",
+    "icon": "🚛",
+    "status": "planned",
+    "description": "Modul pro spravu vozoveho parku",
+    "visible_for_ridic": true
+  },
+  {
+    "id": 2,
+    "name": "GPS tracking",
+    "icon": "📍",
+    "status": "planned",
+    "description": "Sledovani pozice vozidel",
+    "visible_for_ridic": true
+  },
+  {
+    "id": 3,
+    "name": "Sklady",
+    "icon": "📦",
+    "status": "planned",
+    "description": "Sprava skladovych zasob",
+    "visible_for_ridic": false
+  }
+]
