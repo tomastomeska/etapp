@@ -363,6 +363,38 @@ BASE_TEMPLATE = '''
         </div>
     </div>
     
+    <!-- Modal pro editaci novinky -->
+    <div class="modal fade" id="editNewsModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-pencil"></i> Upravit novinku</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="editNewsForm" method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Název</label>
+                            <input type="text" class="form-control" id="editNewsTitle" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Obsah</label>
+                            <textarea class="form-control" id="editNewsContent" name="content" rows="4" required></textarea>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="editNewsFeatured" name="featured">
+                            <label class="form-check-label" for="editNewsFeatured">Důležitá novinka (zvýrazněná)</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zrušit</button>
+                        <button type="submit" class="btn btn-primary">Uložit změny</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function toggleSection(sectionId) {
@@ -525,6 +557,27 @@ BASE_TEMPLATE = '''
                 form.submit();
             }
         }
+        
+        function editNews(newsId, title, content, featured) {
+            document.getElementById('editNewsForm').action = '/admin/edit_news/' + newsId;
+            document.getElementById('editNewsTitle').value = title;
+            document.getElementById('editNewsContent').value = content;
+            document.getElementById('editNewsFeatured').checked = featured;
+            
+            const modal = new bootstrap.Modal(document.getElementById('editNewsModal'));
+            modal.show();
+        }
+        
+        function deleteNews(newsId, title) {
+            if (confirm('Opravdu chcete smazat novinku "' + title + '"? Tato akce je nevratná!')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/admin/delete_news/' + newsId;
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
     </script>
 </body>
 </html>
@@ -556,6 +609,19 @@ def index():
         comments_count = len(news.get('comments', []))
         star = "⭐ " if news.get('featured', False) else ""
         
+        admin_buttons = ''
+        if is_admin:
+            admin_buttons = f'''
+            <div class="btn-group btn-group-sm mt-2">
+                <button class="btn btn-outline-primary btn-sm" onclick="editNews({news['id']}, '{news['title'].replace("'", "\\'")}'', '{news['content'].replace("'", "\\'")}'', {str(news.get('featured', False)).lower()})">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="deleteNews({news['id']}, '{news['title'].replace("'", "\\'")}'')">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+            '''
+        
         news_cards_html += f'''
         <div class="card {featured_class} mb-2" style="border-left: 4px solid;">
             <div class="card-body p-2">
@@ -567,6 +633,7 @@ def index():
                     </small>
                     <span class="badge bg-info" style="font-size: 0.7rem;">💬 {comments_count}</span>
                 </div>
+                {admin_buttons}
             </div>
         </div>
         '''
@@ -1003,7 +1070,7 @@ def delete_app():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Prihlasovaci stranka."""
-    if 'user' in session:
+    if 'user_id' in session:
         return redirect(url_for('index'))
     
     if request.method == 'POST':
@@ -1424,6 +1491,55 @@ def delete_user(user_id):
         flash('Uživatel nebyl nalezen.', 'error')
     
     return redirect(url_for('users'))
+
+@app.route('/admin/edit_news/<int:news_id>', methods=['POST'])
+def edit_news(news_id):
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    title = request.form.get('title', '').strip()
+    content = request.form.get('content', '').strip()
+    featured = 'featured' in request.form
+    
+    if not title or not content:
+        flash('Název a obsah novinky jsou povinné.', 'error')
+        return redirect(url_for('index'))
+    
+    # Najdeme novinku podle ID
+    news_found = None
+    for i, news in enumerate(NEWS):
+        if news['id'] == news_id:
+            news_found = i
+            break
+    
+    if news_found is not None:
+        NEWS[news_found].update({
+            'title': title,
+            'content': content,
+            'featured': featured
+        })
+        flash('Novinka byla úspěšně aktualizována.', 'success')
+    else:
+        flash('Novinka nebyla nalezena.', 'error')
+    
+    return redirect(url_for('index'))
+
+@app.route('/admin/delete_news/<int:news_id>', methods=['POST'])
+def delete_news(news_id):
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    # Najdeme a smazeme novinku podle ID
+    global NEWS
+    original_count = len(NEWS)
+    NEWS = [news for news in NEWS if news['id'] != news_id]
+    
+    if len(NEWS) < original_count:
+        flash('Novinka byla úspěšně smazána.', 'success')
+    else:
+        flash('Novinka nebyla nalezena.', 'error')
+    
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
     print("="*60)
