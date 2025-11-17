@@ -696,20 +696,20 @@ def index():
     users_html = ""
     if is_admin:
         users_html = '<div class="table-responsive"><table class="table"><thead><tr><th>Uzivatel</th><th>Email</th><th>Role</th><th>Status</th><th>Akce</th></tr></thead><tbody>'
-        for email, usr in USERS.items():
+        for user_id, usr in USERS.items():
             role_badge = "admin-badge" if usr["role"] == "admin" else "user-badge"
-            status_badge = "success" if usr["status"] == "online" else "secondary"
-            action_btn = "Deaktivovat" if usr["status"] == "online" else "Aktivovat"
+            status_badge = "success" if usr.get("active", True) else "secondary"
+            action_btn = "Deaktivovat" if usr.get("active", True) else "Aktivovat"
+            status_text = "Aktivní" if usr.get("active", True) else "Neaktivní"
             
             users_html += f'''
             <tr>
-                <td>{usr["avatar"]} {usr["name"]}</td>
-                <td>{email}</td>
+                <td><img src="{usr.get('avatar', 'https://via.placeholder.com/40')}" alt="Avatar" class="rounded-circle me-2" width="30" height="30">{usr["full_name"]}</td>
+                <td>{usr["email"]}</td>
                 <td><span class="badge {role_badge}">{usr["role"]}</span></td>
-                <td><span class="badge bg-{status_badge}">{usr["status"]}</span></td>
+                <td><span class="badge bg-{status_badge}">{status_text}</span></td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick="editUser('{email}')">Editovat</button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="toggleUserStatus('{email}')">{action_btn}</button>
+                    <a href="/users" class="btn btn-sm btn-outline-primary">Spravovat</a>
                 </td>
             </tr>
             '''
@@ -960,18 +960,18 @@ def admin_toggle_user_status():
         flash('Nemate opravneni!', 'error')
         return redirect(url_for('index'))
     
-    user_email = request.form.get('user_email')
+    user_id = int(request.form.get('user_id', 0))
     
-    if user_email not in USERS:
+    if user_id not in USERS:
         flash('Uzivatel nenalezen!', 'error')
         return redirect(url_for('index'))
     
     # Prepnuti statusu
-    current_status = USERS[user_email]['status']
-    new_status = 'offline' if current_status == 'online' else 'online'
-    USERS[user_email]['status'] = new_status
+    current_active = USERS[user_id].get('active', True)
+    new_active = not current_active
+    USERS[user_id]['active'] = new_active
     
-    status_text = 'aktivovan' if new_status == 'online' else 'deaktivovan'
+    status_text = 'aktivovan' if new_active else 'deaktivovan'
     flash(f'Uzivatel byl uspesne {status_text}!', 'success')
     return redirect(url_for('index'))
 
