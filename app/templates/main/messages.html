@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card card-custom">
+            <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-envelope me-2"></i>
+                    Zprávy
+                </h4>
+                <a href="{{ url_for('main.send_message') }}" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-plus me-1"></i> Nová zpráva
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <!-- Received Messages -->
+    <div class="col-lg-6">
+        <div class="card card-custom">
+            <div class="card-header card-header-custom">
+                <h6 class="mb-0">
+                    <i class="fas fa-inbox me-2"></i>
+                    Přijaté zprávy
+                    {% if received_messages.total > 0 %}
+                        <span class="badge bg-light text-dark ms-2">{{ received_messages.total }}</span>
+                    {% endif %}
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                {% if received_messages.items %}
+                    <div class="list-group list-group-flush">
+                        {% for message in received_messages.items %}
+                            <a href="{{ url_for('main.message_detail', id=message.id) }}" 
+                               class="list-group-item list-group-item-action {{ 'list-group-item-light' if not message.is_read() else '' }}">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">
+                                        {{ message.subject }}
+                                        {% if not message.is_read() %}
+                                            <span class="badge bg-primary ms-2">Nové</span>
+                                        {% endif %}
+                                        {% if message.priority == 'high' %}
+                                            <span class="badge bg-danger ms-2">Vysoká priorita</span>
+                                        {% endif %}
+                                        {% if message.is_broadcast %}
+                                            <span class="badge bg-info ms-2">Hromadná zpráva</span>
+                                        {% endif %}
+                                    </h6>
+                                    <small class="text-muted">{{ message.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                                </div>
+                                <p class="mb-1">{{ message.body[:100] + '...' if message.body|length > 100 else message.body }}</p>
+                                <small class="text-muted">
+                                    <i class="fas fa-user me-1"></i>{{ message.sender.get_full_name() }}
+                                </small>
+                            </a>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if received_messages.pages > 1 %}
+                        <div class="card-footer">
+                            <nav aria-label="Navigace přijatých zpráv">
+                                <ul class="pagination pagination-sm justify-content-center mb-0">
+                                    {% if received_messages.has_prev %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('main.messages', page=received_messages.prev_num) }}">Předchozí</a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% for page_num in received_messages.iter_pages() %}
+                                        {% if page_num %}
+                                            {% if page_num != received_messages.page %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="{{ url_for('main.messages', page=page_num) }}">{{ page_num }}</a>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item active">
+                                                    <span class="page-link">{{ page_num }}</span>
+                                                </li>
+                                            {% endif %}
+                                        {% else %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if received_messages.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('main.messages', page=received_messages.next_num) }}">Následující</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox text-muted" style="font-size: 3rem;"></i>
+                        <h6 class="mt-3 text-muted">Žádné zprávy</h6>
+                        <p class="text-muted small">Zde se budou zobrazovat zprávy, které obdržíte</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sent Messages -->
+    <div class="col-lg-6">
+        <div class="card card-custom">
+            <div class="card-header card-header-custom">
+                <h6 class="mb-0">
+                    <i class="fas fa-paper-plane me-2"></i>
+                    Odeslané zprávy
+                    {% if sent_messages.total > 0 %}
+                        <span class="badge bg-light text-dark ms-2">{{ sent_messages.total }}</span>
+                    {% endif %}
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                {% if sent_messages.items %}
+                    <div class="list-group list-group-flush">
+                        {% for message in sent_messages.items %}
+                            <a href="{{ url_for('main.message_detail', id=message.id) }}" 
+                               class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">
+                                        {{ message.subject }}
+                                        {% if message.priority == 'high' %}
+                                            <span class="badge bg-danger ms-2">Vysoká priorita</span>
+                                        {% endif %}
+                                        {% if message.is_broadcast %}
+                                            <span class="badge bg-info ms-2">Hromadná zpráva</span>
+                                        {% endif %}
+                                    </h6>
+                                    <small class="text-muted">{{ message.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                                </div>
+                                <p class="mb-1">{{ message.body[:100] + '...' if message.body|length > 100 else message.body }}</p>
+                                <small class="text-muted">
+                                    <i class="fas fa-user me-1"></i>
+                                    {% if message.is_broadcast %}
+                                        Všichni uživatelé
+                                    {% else %}
+                                        {{ message.recipient.get_full_name() if message.recipient else 'Neznámý příjemce' }}
+                                    {% endif %}
+                                    {% if message.is_read() %}
+                                        <span class="text-success ms-2">
+                                            <i class="fas fa-check-circle"></i> Přečteno
+                                        </span>
+                                    {% endif %}
+                                </small>
+                            </a>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Pagination for sent messages -->
+                    {% if sent_messages.pages > 1 %}
+                        <div class="card-footer">
+                            <nav aria-label="Navigace odeslaných zpráv">
+                                <ul class="pagination pagination-sm justify-content-center mb-0">
+                                    {% if sent_messages.has_prev %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('main.messages', sent_page=sent_messages.prev_num) }}">Předchozí</a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% for page_num in sent_messages.iter_pages() %}
+                                        {% if page_num %}
+                                            {% if page_num != sent_messages.page %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="{{ url_for('main.messages', sent_page=page_num) }}">{{ page_num }}</a>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item active">
+                                                    <span class="page-link">{{ page_num }}</span>
+                                                </li>
+                                            {% endif %}
+                                        {% else %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if sent_messages.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('main.messages', sent_page=sent_messages.next_num) }}">Následující</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-paper-plane text-muted" style="font-size: 3rem;"></i>
+                        <h6 class="mt-3 text-muted">Žádné odeslané zprávy</h6>
+                        <p class="text-muted small">
+                            <a href="{{ url_for('main.send_message') }}" class="btn btn-sm btn-outline-primary">
+                                Napsat první zprávu
+                            </a>
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card card-custom">
+            <div class="card-header card-header-custom">
+                <h4 class="mb-0">
+                    <i class="fas fa-user me-2"></i>
+                    Můj profil
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 text-center">
+                        <div class="profile-avatar mb-3">
+                            {% if current_user.avatar_filename %}
+                                <img src="{{ url_for('static', filename='uploads/avatars/' + current_user.avatar_filename) }}" 
+                                     class="rounded-circle img-fluid" 
+                                     style="max-width: 150px; max-height: 150px;">
+                            {% else %}
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mx-auto" 
+                                     style="width: 150px; height: 150px; font-size: 3rem;">
+                                    {{ current_user.first_name[0] }}{{ current_user.last_name[0] }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <h5>{{ current_user.get_full_name() }}</h5>
+                        <p class="text-muted">{{ current_user.role.name if current_user.role else 'Bez role' }}</p>
+                        <span class="badge bg-success">
+                            <i class="fas fa-circle me-1"></i> Online
+                        </span>
+                    </div>
+                    
+                    <div class="col-md-9">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-primary-custom">Základní informace</h6>
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <td><strong>Uživatelské jméno:</strong></td>
+                                        <td>{{ current_user.username }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Email:</strong></td>
+                                        <td>{{ current_user.email }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Telefon:</strong></td>
+                                        <td>{{ current_user.phone or 'Nezadáno' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Registrace:</strong></td>
+                                        <td>{{ current_user.created_at.strftime('%d.%m.%Y') if current_user.created_at else 'Neznámé' }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h6 class="text-primary-custom">Pracovní informace</h6>
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <td><strong>Oddělení:</strong></td>
+                                        <td>{{ current_user.department or 'Nezadáno' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Pozice:</strong></td>
+                                        <td>{{ current_user.position or 'Nezadána' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Role:</strong></td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ current_user.role.name if current_user.role else 'Bez role' }}</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Poslední aktivita:</strong></td>
+                                        <td>{{ current_user.last_seen.strftime('%d.%m.%Y %H:%M') if current_user.last_seen else 'Neznámá' }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('auth.edit_profile') }}" class="btn btn-primary btn-primary-custom">
+                                <i class="fas fa-edit me-2"></i>Upravit profil
+                            </a>
+                            <a href="{{ url_for('auth.change_password') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-lock me-2"></i>Změnit heslo
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Activity History -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card card-custom">
+            <div class="card-header card-header-custom">
+                <h6 class="mb-0">
+                    <i class="fas fa-history me-2"></i>
+                    Poslední aktivita
+                </h6>
+            </div>
+            <div class="card-body">
+                {% set recent_activities = current_user.activities.order_by(current_user.activities.property.mapper.class_.timestamp.desc()).limit(10) %}
+                {% if recent_activities %}
+                    <div class="list-group list-group-flush">
+                        {% for activity in recent_activities %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ activity.description or activity.activity_type }}</h6>
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>
+                                        {{ activity.timestamp.strftime('%d.%m.%Y %H:%M') }}
+                                        {% if activity.ip_address %}
+                                            | <i class="fas fa-map-marker-alt me-1"></i>{{ activity.ip_address }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <span class="badge bg-light text-dark">{{ activity.activity_type }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-history text-muted" style="font-size: 3rem;"></i>
+                        <h6 class="mt-3 text-muted">Žádná aktivita</h6>
+                        <p class="text-muted small">Historie aktivit se zobrazí zde</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
