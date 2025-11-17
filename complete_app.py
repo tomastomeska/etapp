@@ -14,31 +14,37 @@ app.config['SECRET_KEY'] = 'european-transport-secret-key-2024'
 
 # Simulovana databaze
 USERS = {
-    'admin@europeantransport.cz': {
+    1: {
         'id': 1,
+        'username': 'admin',
+        'email': 'admin@europeantransport.cz',
         'password': generate_password_hash('admin123'),
-        'name': 'Administrator Systemu',
+        'full_name': 'Administrator Systému',
         'role': 'admin',
-        'avatar': '👨‍💼',
-        'status': 'online',
+        'avatar': 'https://via.placeholder.com/50',
+        'active': True,
         'created': '2024-01-01'
     },
-    'user@europeantransport.cz': {
+    2: {
         'id': 2,
+        'username': 'jan.novak',
+        'email': 'user@europeantransport.cz',
         'password': generate_password_hash('user123'),
-        'name': 'Jan Novak',
-        'role': 'user',
-        'avatar': '👤',
-        'status': 'online',
+        'full_name': 'Jan Novák',
+        'role': 'ridic',
+        'avatar': 'https://via.placeholder.com/50',
+        'active': True,
         'created': '2024-02-15'
     },
-    'marie@europeantransport.cz': {
+    3: {
         'id': 3,
+        'username': 'marie.svobodova',
+        'email': 'marie@europeantransport.cz',
         'password': generate_password_hash('marie123'),
-        'name': 'Marie Svobodova',
-        'role': 'user',
-        'avatar': '👩',
-        'status': 'offline',
+        'full_name': 'Marie Svobodová',
+        'role': 'administrativa',
+        'avatar': 'https://via.placeholder.com/50',
+        'active': True,
         'created': '2024-03-10'
     }
 }
