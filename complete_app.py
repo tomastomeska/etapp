@@ -768,13 +768,13 @@ def index():
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Jmeno</label>
-                                <input type="text" class="form-control" name="first_name" value="{user['name'].split()[0] if ' ' in user['name'] else user['name']}" required>
+                                <input type="text" class="form-control" name="first_name" value="{user['full_name'].split()[0] if ' ' in user['full_name'] else user['full_name']}" required>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Prijmeni</label>
-                                <input type="text" class="form-control" name="last_name" value="{user['name'].split()[1] if ' ' in user['name'] and len(user['name'].split()) > 1 else ''}">
+                                <input type="text" class="form-control" name="last_name" value="{user['full_name'].split()[1] if ' ' in user['full_name'] and len(user['full_name'].split()) > 1 else ''}">
                             </div>
                         </div>
                     </div>
@@ -782,7 +782,7 @@ def index():
                         <label class="form-label">Email</label>
                         <input type="email" class="form-control" name="email" value="{user['email']}" required>
                     </div>
-                    {f'<div class="mb-3"><label class="form-label">Avatar (emoji)</label><select class="form-control" name="avatar"><option value="👤" {"selected" if user["avatar"] == "👤" else ""}>👤 Uzivatel</option><option value="👨‍💼" {"selected" if user["avatar"] == "👨‍💼" else ""}>👨‍💼 Manager</option><option value="👩" {"selected" if user["avatar"] == "👩" else ""}>👩 Zena</option><option value="👨‍🔧" {"selected" if user["avatar"] == "👨‍🔧" else ""}>👨‍🔧 Technik</option><option value="🚛" {"selected" if user["avatar"] == "🚛" else ""}>🚛 Ridic</option><option value="📋" {"selected" if user["avatar"] == "📋" else ""}>📋 Admin</option></select></div>' if is_admin else ''}
+                    {'<div class="mb-3"><label class="form-label">Avatar URL</label><input type="url" class="form-control" name="avatar" value="' + user.get('avatar', 'https://via.placeholder.com/50') + '" placeholder="URL obrázku avatara"></div>' if is_admin else ''}
                     <hr>
                     <h6>Zmena hesla (volitelne)</h6>
                     <div class="mb-3">
