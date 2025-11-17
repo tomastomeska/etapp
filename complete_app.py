@@ -725,7 +725,7 @@ def index():
                     <h5><i class="bi bi-person-circle"></i> Profil</h5>
                     <div class="card-body p-0">
                         <h6>{user["full_name"]}</h6>
-                        <p class="text-muted small mb-2">{{{'admin': 'Administrátor', 'ridic': 'Řidič', 'administrativa': 'Administrativa'}.get(user["role"], user["role"].title())}} účet</p>
+                        <p class="text-muted small mb-2">{'Administrátor' if user["role"] == 'admin' else 'Řidič' if user["role"] == 'ridic' else 'Administrativa' if user["role"] == 'administrativa' else user["role"].title()} účet</p>
                         <button class="btn btn-outline-primary btn-sm" onclick="toggleSection('edit-profile')">
                             <i class="bi bi-pencil"></i> Editovat profil
                         </button>
