@@ -1012,22 +1012,17 @@ def login():
         email = request.form.get('email', '').lower()
         password = request.form.get('password', '')
         
-        # Najdeme uživatele podle emailu
-        user_found = None
-        for user in USERS.values():
-            if user['email'].lower() == email:
-                user_found = user
-                break
+        # Najdeme uživatele podle emailu - email je klíč v USERS dictionary
+        user_found = USERS.get(email)
         
         if user_found and check_password_hash(user_found['password'], password):
             if not user_found.get('active', True):
                 flash('Váš účet je deaktivován. Kontaktujte administrátora.', 'error')
             else:
-                session['user_id'] = user_found['id']
-                session['username'] = user_found['username']
+                session['user_id'] = email  # Use email as user_id since that's the key
+                session['full_name'] = user_found['name']
                 session['role'] = user_found['role']
-                session['full_name'] = user_found['full_name']
-                flash(f'Vítejte, {user_found["full_name"]}!', 'success')
+                flash(f'Vítejte, {user_found["name"]}!', 'success')
                 return redirect(url_for('index'))
         else:
             flash('Neplatné přihlašovací údaje!', 'error')
