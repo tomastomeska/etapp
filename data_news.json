@@ -12,7 +12,12 @@
       {
         "user_id": 1,
         "full_name": "Administrator Systému",
-        "read_at": "2025-11-18 20:17:11"
+        "read_at": "2025-11-18 20:22:00"
+      },
+      {
+        "user_id": 2,
+        "full_name": "Jan Novák",
+        "read_at": "2025-11-18 20:23:08"
       }
     ],
     "comments": []
@@ -35,7 +40,7 @@
       {
         "user_id": 2,
         "full_name": "Jan Novák",
-        "read_at": "2025-11-18 20:10:11"
+        "read_at": "2025-11-18 20:23:06"
       }
     ],
     "comments": []
@@ -53,10 +58,37 @@
       {
         "user_id": 1,
         "full_name": "Administrator Systému",
-        "read_at": "2025-11-18 20:14:53"
+        "read_at": "2025-11-18 20:24:07"
+      },
+      {
+        "user_id": 2,
+        "full_name": "Jan Novák",
+        "read_at": "2025-11-18 20:23:37"
       }
     ],
-    "comments": []
+    "comments": [
+      {
+        "id": 1,
+        "user_id": 2,
+        "author": "Jan Novák",
+        "text": "díky za info",
+        "created": "2025-11-18 20:23:37",
+        "edited": false,
+        "deleted": false,
+        "replies": [
+          {
+            "id": 2,
+            "user_id": 1,
+            "author": "Administrator Systému",
+            "text": "není zač",
+            "created": "2025-11-18 20:24:07",
+            "edited": false,
+            "deleted": false,
+            "replies": []
+          }
+        ]
+      }
+    ]
   },
   {
     "id": 2,
@@ -71,7 +103,7 @@
       {
         "user_id": 2,
         "full_name": "Jan Novák",
-        "read_at": "2025-11-18 20:10:23"
+        "read_at": "2025-11-18 20:23:15"
       },
       {
         "user_id": 1,

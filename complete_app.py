@@ -677,9 +677,17 @@ def index():
     display_limit = 3
     total_news_count = len(NEWS)
     
+    def count_all_comments(comments):
+        """Rekurzivně spočítá všechny komentáře včetně odpovědí."""
+        count = len(comments)
+        for comment in comments:
+            if comment.get('replies'):
+                count += count_all_comments(comment['replies'])
+        return count
+    
     for idx, news in enumerate(NEWS[:display_limit]):
         featured_class = "border-danger" if news.get('featured', False) else "border-primary"
-        comments_count = len(news.get('comments', []))
+        comments_count = count_all_comments(news.get('comments', []))
         star = "⭐ " if news.get('featured', False) else ""
         read_count = len(news.get('read_by', []))
         
@@ -1711,6 +1719,84 @@ def news_detail(news_id):
     if news_item.get('image'):
         image_html = f'<div class="text-center mb-4"><img src="{news_item["image"]}" class="img-fluid" style="max-width: 100%; max-height: 500px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" alt="Obrázek novinky"></div>'
     
+    # Systém komentářů
+    if 'comments' not in news_item:
+        news_item['comments'] = []
+    
+    def render_comment(comment, depth=0):
+        """Rekurzivní renderování komentáře a jeho odpovědí."""
+        comment_id = comment.get('id', 0)
+        is_deleted = comment.get('deleted', False)
+        is_owner = comment.get('user_id') == user_id
+        is_admin_user = session.get('role') == 'admin'
+        
+        margin_left = f"margin-left: {depth * 30}px;" if depth > 0 else ""
+        
+        if is_deleted:
+            return f'''
+            <div class="card mb-2 bg-light" style="{margin_left}">
+                <div class="card-body p-2">
+                    <small class="text-muted"><i class="bi bi-trash"></i> Komentář byl smazán administrátorem</small>
+                    <div class="mt-1"><small class="text-danger"><strong>Důvod:</strong> {comment.get('delete_reason', 'Nezadán')}</small></div>
+                    <small class="text-muted">Smazal: {comment.get('deleted_by', 'Admin')} | {comment.get('deleted_at', '')}</small>
+                </div>
+            </div>
+            '''
+        
+        edit_time = f" (upraveno {comment.get('edited_at', '')})" if comment.get('edited') else ""
+        
+        comment_html = f'''
+        <div class="card mb-2" style="{margin_left}" id="comment-{comment_id}">
+            <div class="card-body p-2">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <strong>{comment['author']}</strong> 
+                        <small class="text-muted">• {comment['created']}{edit_time}</small>
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-outline-primary btn-sm" onclick="showReplyForm({comment_id}, '{comment['author']}')">
+                            <i class="bi bi-reply"></i>
+                        </button>
+                        {f'<button class="btn btn-outline-secondary btn-sm" onclick="editComment({comment_id}, \'{comment["text"].replace("'", "\\'").replace(chr(10), "\\n")}\')"><i class="bi bi-pencil"></i></button>' if is_owner else ''}
+                        {f'<button class="btn btn-outline-danger btn-sm" onclick="showDeleteModal({comment_id})"><i class="bi bi-trash"></i></button>' if is_admin_user else ''}
+                    </div>
+                </div>
+                <div class="mt-2" id="comment-text-{comment_id}">
+                    <p class="mb-0" style="white-space: pre-wrap;">{comment['text']}</p>
+                </div>
+                <div id="edit-form-{comment_id}" style="display: none;">
+                    <form method="POST" action="/news/{news_id}/comment/{comment_id}/edit">
+                        <textarea class="form-control form-control-sm mb-2" name="text" rows="3" required>{comment['text']}</textarea>
+                        <button type="submit" class="btn btn-primary btn-sm">Uložit</button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="cancelEdit({comment_id})">Zrušit</button>
+                    </form>
+                </div>
+                <div id="reply-form-{comment_id}" style="display: none;" class="mt-2">
+                    <form method="POST" action="/news/{news_id}/comment/add">
+                        <input type="hidden" name="parent_id" value="{comment_id}">
+                        <textarea class="form-control form-control-sm mb-2" name="text" rows="2" placeholder="Napište odpověď..." required></textarea>
+                        <button type="submit" class="btn btn-success btn-sm">Odeslat odpověď</button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="hideReplyForm({comment_id})">Zrušit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        '''
+        
+        # Přidání odpovědí
+        replies_html = ''
+        for reply in comment.get('replies', []):
+            replies_html += render_comment(reply, depth + 1)
+        
+        return comment_html + replies_html
+    
+    comments_html = ''
+    for comment in news_item['comments']:
+        comments_html += render_comment(comment)
+    
+    if not comments_html:
+        comments_html = '<p class="text-muted">Zatím žádné komentáře. Buďte první!</p>'
+    
     content = f'''
     <div class="row justify-content-center">
         <div class="col-md-10">
@@ -1732,11 +1818,251 @@ def news_detail(news_id):
             </div>
             
             {readers_html}
+            
+            <!-- Komentáře -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5><i class="bi bi-chat-left-text"></i> Komentáře ({len(news_item['comments'])})</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Formulář pro nový komentář -->
+                    <form method="POST" action="/news/{news_id}/comment/add" class="mb-3">
+                        <textarea class="form-control mb-2" name="text" rows="3" placeholder="Napište komentář..." required></textarea>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Přidat komentář</button>
+                    </form>
+                    
+                    <hr>
+                    
+                    <!-- Seznam komentářů -->
+                    {comments_html}
+                </div>
+            </div>
         </div>
     </div>
+    
+    <!-- Modál pro smazání komentáře -->
+    <div class="modal fade" id="deleteCommentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-trash"></i> Smazat komentář</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="deleteCommentForm" method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Důvod smazání (povinné)</label>
+                            <textarea class="form-control" name="delete_reason" rows="3" required placeholder="Uveďte důvod smazání komentáře..."></textarea>
+                        </div>
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i> Komentář bude označen jako smazaný a všem uživatelům se zobrazí důvod smazání.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zrušit</button>
+                        <button type="submit" class="btn btn-danger">Smazat komentář</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function showReplyForm(commentId, author) {{
+            document.getElementById('reply-form-' + commentId).style.display = 'block';
+        }}
+        
+        function hideReplyForm(commentId) {{
+            document.getElementById('reply-form-' + commentId).style.display = 'none';
+        }}
+        
+        function editComment(commentId, text) {{
+            document.getElementById('comment-text-' + commentId).style.display = 'none';
+            document.getElementById('edit-form-' + commentId).style.display = 'block';
+        }}
+        
+        function cancelEdit(commentId) {{
+            document.getElementById('comment-text-' + commentId).style.display = 'block';
+            document.getElementById('edit-form-' + commentId).style.display = 'none';
+        }}
+        
+        function showDeleteModal(commentId) {{
+            const form = document.getElementById('deleteCommentForm');
+            form.action = '/news/{news_id}/comment/' + commentId + '/delete';
+            const modal = new bootstrap.Modal(document.getElementById('deleteCommentModal'));
+            modal.show();
+        }}
+    </script>
     '''
     
     return render_template_string(BASE_TEMPLATE, title=news_item['title'], content=content)
+
+@app.route('/news/<int:news_id>/comment/add', methods=['POST'])
+def add_comment(news_id):
+    """Přidání komentáře k novince."""
+    if 'user_id' not in session:
+        flash('Nejste přihlášeni!', 'error')
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+    user = USERS.get(user_id)
+    text = request.form.get('text', '').strip()
+    parent_id = request.form.get('parent_id', '')
+    
+    if not text:
+        flash('Komentář nesmí být prázdný!', 'error')
+        return redirect(url_for('news_detail', news_id=news_id))
+    
+    # Najdeme novinku
+    news_item = None
+    for news in NEWS:
+        if news['id'] == news_id:
+            news_item = news
+            break
+    
+    if not news_item:
+        flash('Novinka nebyla nalezena.', 'error')
+        return redirect(url_for('index'))
+    
+    if 'comments' not in news_item:
+        news_item['comments'] = []
+    
+    # Vytvoření nového komentáře
+    new_comment = {
+        'id': max([c.get('id', 0) for c in news_item['comments']], default=0) + 1,
+        'user_id': user_id,
+        'author': user.get('full_name', 'Neznámý'),
+        'text': text,
+        'created': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'edited': False,
+        'deleted': False,
+        'replies': []
+    }
+    
+    # Pokud je to odpověď na jiný komentář
+    if parent_id:
+        parent_id = int(parent_id)
+        
+        def add_reply_to_comment(comments):
+            for comment in comments:
+                if comment['id'] == parent_id:
+                    if 'replies' not in comment:
+                        comment['replies'] = []
+                    comment['replies'].append(new_comment)
+                    return True
+                if comment.get('replies'):
+                    if add_reply_to_comment(comment['replies']):
+                        return True
+            return False
+        
+        if not add_reply_to_comment(news_item['comments']):
+            # Pokud se nepodařilo najít rodičovský komentář, přidáme jako hlavní
+            news_item['comments'].append(new_comment)
+    else:
+        # Hlavní komentář
+        news_item['comments'].append(new_comment)
+    
+    save_news()
+    flash('Komentář byl přidán!', 'success')
+    return redirect(url_for('news_detail', news_id=news_id))
+
+@app.route('/news/<int:news_id>/comment/<int:comment_id>/edit', methods=['POST'])
+def edit_comment(news_id, comment_id):
+    """Editace komentáře."""
+    if 'user_id' not in session:
+        flash('Nejste přihlášeni!', 'error')
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+    text = request.form.get('text', '').strip()
+    
+    if not text:
+        flash('Komentář nesmí být prázdný!', 'error')
+        return redirect(url_for('news_detail', news_id=news_id))
+    
+    # Najdeme novinku
+    news_item = None
+    for news in NEWS:
+        if news['id'] == news_id:
+            news_item = news
+            break
+    
+    if not news_item:
+        flash('Novinka nebyla nalezena.', 'error')
+        return redirect(url_for('index'))
+    
+    # Najdeme a upravíme komentář
+    def update_comment(comments):
+        for comment in comments:
+            if comment['id'] == comment_id:
+                if comment['user_id'] == user_id:
+                    comment['text'] = text
+                    comment['edited'] = True
+                    comment['edited_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    return True
+                else:
+                    flash('Nemůžete upravovat cizí komentáře!', 'error')
+                    return False
+            if comment.get('replies'):
+                if update_comment(comment['replies']):
+                    return True
+        return False
+    
+    if update_comment(news_item.get('comments', [])):
+        save_news()
+        flash('Komentář byl upraven!', 'success')
+    else:
+        flash('Komentář nebyl nalezen!', 'error')
+    
+    return redirect(url_for('news_detail', news_id=news_id))
+
+@app.route('/news/<int:news_id>/comment/<int:comment_id>/delete', methods=['POST'])
+def delete_comment(news_id, comment_id):
+    """Smazání komentáře (pouze admin)."""
+    if 'user_id' not in session or session.get('role') != 'admin':
+        flash('Nemáte oprávnění!', 'error')
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+    user = USERS.get(user_id)
+    delete_reason = request.form.get('delete_reason', '').strip()
+    
+    if not delete_reason:
+        flash('Musíte uvést důvod smazání!', 'error')
+        return redirect(url_for('news_detail', news_id=news_id))
+    
+    # Najdeme novinku
+    news_item = None
+    for news in NEWS:
+        if news['id'] == news_id:
+            news_item = news
+            break
+    
+    if not news_item:
+        flash('Novinka nebyla nalezena.', 'error')
+        return redirect(url_for('index'))
+    
+    # Najdeme a označíme komentář jako smazaný
+    def mark_deleted(comments):
+        for comment in comments:
+            if comment['id'] == comment_id:
+                comment['deleted'] = True
+                comment['delete_reason'] = delete_reason
+                comment['deleted_by'] = user.get('full_name', 'Admin')
+                comment['deleted_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                return True
+            if comment.get('replies'):
+                if mark_deleted(comment['replies']):
+                    return True
+        return False
+    
+    if mark_deleted(news_item.get('comments', [])):
+        save_news()
+        flash('Komentář byl smazán!', 'success')
+    else:
+        flash('Komentář nebyl nalezen!', 'error')
+    
+    return redirect(url_for('news_detail', news_id=news_id))
 
 @app.route('/news/archive')
 def news_archive():
@@ -1816,12 +2142,20 @@ def news_archive():
     '''
     
     # Generování HTML pro novinky
+    def count_all_comments(comments):
+        """Rekurzivně spočítá všechny komentáře včetně odpovědí."""
+        count = len(comments)
+        for comment in comments:
+            if comment.get('replies'):
+                count += count_all_comments(comment['replies'])
+        return count
+    
     news_list_html = ''
     for news in filtered_news:
         featured_class = "border-danger" if news.get('featured', False) else "border-primary"
         star = "⭐ " if news.get('featured', False) else ""
         read_count = len(news.get('read_by', []))
-        comments_count = len(news.get('comments', []))
+        comments_count = count_all_comments(news.get('comments', []))
         
         admin_buttons = ''
         if is_admin:
