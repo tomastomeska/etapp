@@ -1798,43 +1798,50 @@ def news_detail(news_id):
         comments_html = '<p class="text-muted">Zatím žádné komentáře. Buďte první!</p>'
     
     content = f'''
-    <div class="row justify-content-center">
-        <div class="col-md-10">
-            <div class="mb-3">
-                <a href="/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Zpět na dashboard</a>
-            </div>
-            
-            <div class="card">
-                <div class="card-header" style="background: {'linear-gradient(135deg, #dc3545 0%, #fd7e14 100%)' if news_item.get('featured') else 'linear-gradient(135deg, #2c5aa0 0%, #1e3a72 100%)'}; color: white;">
-                    <h3 class="mb-0">{news_item['title']}</h3>
-                    <small><i class="bi bi-person"></i> {news_item['author']} | <i class="bi bi-calendar"></i> {news_item['created']}</small>
-                </div>
-                <div class="card-body">
-                    {image_html}
-                    <div style="white-space: pre-wrap; line-height: 1.8;">
-                        {content_full}
+    <div class="container-fluid">
+        <div class="mb-3">
+            <a href="/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Zpět na dashboard</a>
+        </div>
+        
+        <div class="row">
+            <!-- Levá část - Obsah novinky -->
+            <div class="col-lg-7">
+                <div class="card sticky-top" style="top: 20px;">
+                    <div class="card-header" style="background: {'linear-gradient(135deg, #dc3545 0%, #fd7e14 100%)' if news_item.get('featured') else 'linear-gradient(135deg, #2c5aa0 0%, #1e3a72 100%)'}; color: white;">
+                        <h3 class="mb-0">{news_item['title']}</h3>
+                        <small><i class="bi bi-person"></i> {news_item['author']} | <i class="bi bi-calendar"></i> {news_item['created']}</small>
+                    </div>
+                    <div class="card-body" style="max-height: 70vh; overflow-y: auto;">
+                        {image_html}
+                        <div style="white-space: pre-wrap; line-height: 1.8;">
+                            {content_full}
+                        </div>
                     </div>
                 </div>
+                
+                {readers_html}
             </div>
             
-            {readers_html}
-            
-            <!-- Komentáře -->
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h5><i class="bi bi-chat-left-text"></i> Komentáře ({len(news_item['comments'])})</h5>
-                </div>
-                <div class="card-body">
-                    <!-- Formulář pro nový komentář -->
-                    <form method="POST" action="/news/{news_id}/comment/add" class="mb-3">
-                        <textarea class="form-control mb-2" name="text" rows="3" placeholder="Napište komentář..." required></textarea>
-                        <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Přidat komentář</button>
-                    </form>
-                    
-                    <hr>
-                    
-                    <!-- Seznam komentářů -->
-                    {comments_html}
+            <!-- Pravá část - Komentáře -->
+            <div class="col-lg-5">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-chat-left-text"></i> Komentáře ({len(news_item['comments'])})</h5>
+                    </div>
+                    <div class="card-body p-3">
+                        <!-- Formulář pro nový komentář -->
+                        <form method="POST" action="/news/{news_id}/comment/add" class="mb-3">
+                            <textarea class="form-control mb-2" name="text" rows="2" placeholder="Napište komentář..." required></textarea>
+                            <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-send"></i> Přidat komentář</button>
+                        </form>
+                        
+                        <hr>
+                        
+                        <!-- Seznam komentářů -->
+                        <div style="max-height: 60vh; overflow-y: auto;">
+                            {comments_html}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

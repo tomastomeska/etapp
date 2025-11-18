@@ -58,7 +58,7 @@
       {
         "user_id": 1,
         "full_name": "Administrator Systému",
-        "read_at": "2025-11-18 20:24:07"
+        "read_at": "2025-11-18 20:25:52"
       },
       {
         "user_id": 2,
@@ -74,7 +74,7 @@
         "text": "díky za info",
         "created": "2025-11-18 20:23:37",
         "edited": false,
-        "deleted": false,
+        "deleted": true,
         "replies": [
           {
             "id": 2,
@@ -86,7 +86,10 @@
             "deleted": false,
             "replies": []
           }
-        ]
+        ],
+        "delete_reason": "Urážející komentář",
+        "deleted_by": "Administrator Systému",
+        "deleted_at": "2025-11-18 20:25:42"
       }
     ]
   },
