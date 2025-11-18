@@ -842,8 +842,11 @@ def index():
                         <li><i class="bi bi-newspaper"></i> Nepřečtené novinky: {unread_news}</li>
                         <li><i class="bi bi-envelope"></i> Nepřečtené zprávy: {unread_messages}</li>
                         <li><i class="bi bi-clock"></i> Online: {datetime.now().strftime("%H:%M")}</li>
-                        {f'<li class="mt-2"><a href="/admin/deleted-comments" class="btn btn-outline-danger btn-sm w-100"><i class="bi bi-trash"></i> Smazané komentáře</a></li>' if is_admin else ''}
                     </ul>
+                    {f'''<div class="mt-2">
+                        <a href="/users" class="btn btn-outline-primary btn-sm w-100 mb-2"><i class="bi bi-people"></i> Správa uživatelů</a>
+                        <a href="/admin/deleted-comments" class="btn btn-outline-danger btn-sm w-100"><i class="bi bi-trash"></i> Smazané komentáře</a>
+                    </div>''' if is_admin else ''}
                 </div>
 
 
@@ -1545,6 +1548,7 @@ def add_user():
         'active': True
     }
     
+    save_users()  # Uložit do JSON
     flash(f'Uživatel {username} byl úspěšně vytvořen.', 'success')
     return redirect(url_for('users'))
 
@@ -1592,6 +1596,7 @@ def edit_user(user_id):
     if password:
         USERS[user_id]['password'] = generate_password_hash(password)
     
+    save_users()  # Uložit do JSON
     flash(f'Uživatel {username} byl úspěšně aktualizován.', 'success')
     return redirect(url_for('users'))
 
@@ -1608,6 +1613,7 @@ def delete_user(user_id):
     if user_id in USERS:
         username = USERS[user_id]['username']
         del USERS[user_id]
+        save_users()  # Uložit do JSON
         flash(f'Uživatel {username} byl úspěšně smazán.', 'success')
     else:
         flash('Uživatel nebyl nalezen.', 'error')
