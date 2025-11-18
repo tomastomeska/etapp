@@ -55,18 +55,24 @@ NEWS = [
         'id': 1,
         'title': 'Novy system pro spravu vozidel',
         'content': 'Spoustime novy modul pro spravu vozoveho parku. Umozni lepsi sledovani udrzby a spotreby paliva.',
+        'content_full': 'Spouštíme nový modul pro správu vozového parku! 🚛\n\nTento komplexní systém umožní:\n- Sledování údržby vozidel\n- Monitoring spotřeby paliva\n- Plánování servisních intervalů\n- Real-time GPS tracking\n- Elektronická kniha jízd\n\nModul bude dostupný od příštího měsíce pro všechny řidiče a dispečery.',
         'author': 'Administrator Systemu',
         'created': '2024-11-10 10:30',
         'featured': True,
+        'image': '',
+        'read_by': [],
         'comments': []
     },
     {
         'id': 2,
         'title': 'Aktualizace bezpecnostnich protokolu',
         'content': 'Vsichni ridici si prosim prostudujte nove bezpecnostni smernice v priloze.',
+        'content_full': 'Všichni řidiči si prosím prostudujte nové bezpečnostní směrnice.\n\nKlíčové změny:\n- Nové postupy při nakládce nebezpečného nákladu\n- Aktualizované formuláře pro hlášení nehod\n- Povinné kontroly před jízdou\n\nDokumenty najdete v sekci Dokumenty.',
         'author': 'Administrator Systemu',
         'created': '2024-11-08 14:15',
         'featured': False,
+        'image': '',
+        'read_by': [],
         'comments': [
             {'author': 'Jan Novak', 'text': 'Dokumenty jsem prostudoval', 'time': '2024-11-09 08:00'}
         ]
@@ -372,7 +378,7 @@ BASE_TEMPLATE = '''
     
     <!-- Modal pro editaci novinky -->
     <div class="modal fade" id="editNewsModal" tabindex="-1" data-bs-backdrop="static">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="bi bi-pencil"></i> Upravit novinku</h5>
@@ -385,17 +391,67 @@ BASE_TEMPLATE = '''
                             <input type="text" class="form-control" id="editNewsTitle" name="title" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Obsah</label>
-                            <textarea class="form-control" id="editNewsContent" name="content" rows="4" required></textarea>
+                            <label class="form-label">Krátký obsah (náhled)</label>
+                            <textarea class="form-control" id="editNewsContent" name="content" rows="2" required placeholder="Zobrazí se na hlavní stránce..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Plný obsah (detail)</label>
+                            <textarea class="form-control" id="editNewsContentFull" name="content_full" rows="6" placeholder="Zobrazí se po kliknutí na novinku..."></textarea>
+                            <small class="text-muted">Můžete použít více řádků pro lepší formátování.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">URL obrázku (volitelné)</label>
+                            <input type="text" class="form-control" id="editNewsImage" name="image" placeholder="https://example.com/obrazek.jpg">
                         </div>
                         <div class="form-check">
                             <input type="checkbox" class="form-check-input" id="editNewsFeatured" name="featured">
-                            <label class="form-check-label" for="editNewsFeatured">Důležitá novinka (zvýrazněná)</label>
+                            <label class="form-check-label" for="editNewsFeatured">⭐ Důležitá novinka (zvýrazněná)</label>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zrušit</button>
                         <button type="submit" class="btn btn-primary">Uložit změny</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal pro přidání novinky -->
+    <div class="modal fade" id="addNewsModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Přidat novinku</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="/add_news">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Název</label>
+                            <input type="text" class="form-control" name="title" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Krátký obsah (náhled)</label>
+                            <textarea class="form-control" name="content" rows="2" required placeholder="Zobrazí se na hlavní stránce..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Plný obsah (detail)</label>
+                            <textarea class="form-control" name="content_full" rows="6" placeholder="Zobrazí se po kliknutí na novinku..."></textarea>
+                            <small class="text-muted">Můžete použít více řádků pro lepší formátování.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">URL obrázku (volitelné)</label>
+                            <input type="text" class="form-control" name="image" placeholder="https://example.com/obrazek.jpg">
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="featured" id="addNewsFeatured">
+                            <label class="form-check-label" for="addNewsFeatured">⭐ Důležitá novinka (zvýrazněná)</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zrušit</button>
+                        <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> Přidat novinku</button>
                     </div>
                 </form>
             </div>
@@ -565,10 +621,12 @@ BASE_TEMPLATE = '''
             }
         }
         
-        function editNews(newsId, title, content, featured) {
+        function editNews(newsId, title, content, contentFull, image, featured) {
             document.getElementById('editNewsForm').action = '/admin/edit_news/' + newsId;
             document.getElementById('editNewsTitle').value = title;
             document.getElementById('editNewsContent').value = content;
+            document.getElementById('editNewsContentFull').value = contentFull || content;
+            document.getElementById('editNewsImage').value = image || '';
             document.getElementById('editNewsFeatured').checked = featured;
             
             const modal = new bootstrap.Modal(document.getElementById('editNewsModal'));
@@ -584,6 +642,11 @@ BASE_TEMPLATE = '''
                 document.body.appendChild(form);
                 form.submit();
             }
+        }
+        
+        function showAddNewsModal() {
+            const modal = new bootstrap.Modal(document.getElementById('addNewsModal'));
+            modal.show();
         }
     </script>
 </body>
@@ -615,30 +678,40 @@ def index():
         featured_class = "border-danger" if news.get('featured', False) else "border-primary"
         comments_count = len(news.get('comments', []))
         star = "⭐ " if news.get('featured', False) else ""
+        read_count = len(news.get('read_by', []))
         
         admin_buttons = ''
         if is_admin:
+            # Escapování pro JavaScript
+            title_escaped = news['title'].replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n')
+            content_escaped = news['content'].replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n')
+            content_full_escaped = news.get('content_full', news['content']).replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n')
+            image_escaped = news.get('image', '').replace("'", "\\'").replace('"', '\\"')
+            
             admin_buttons = f'''
-            <div class="btn-group btn-group-sm mt-2">
-                <button class="btn btn-outline-primary btn-sm" onclick="editNews({news['id']}, '{news['title'].replace("'", "\\'")}'', '{news['content'].replace("'", "\\'")}'', {str(news.get('featured', False)).lower()})">
+            <div class="btn-group btn-group-sm mt-2" onclick="event.stopPropagation();">
+                <button class="btn btn-outline-primary btn-sm" onclick="editNews({news['id']}, '{title_escaped}', '{content_escaped}', '{content_full_escaped}', '{image_escaped}', {str(news.get('featured', False)).lower()}); event.stopPropagation();">
                     <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn btn-outline-danger btn-sm" onclick="deleteNews({news['id']}, '{news['title'].replace("'", "\\'")}'')">
+                <button class="btn btn-outline-danger btn-sm" onclick="deleteNews({news['id']}, '{title_escaped}'); event.stopPropagation();">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
             '''
         
         news_cards_html += f'''
-        <div class="card {featured_class} mb-2" style="border-left: 4px solid;">
+        <div class="card {featured_class} mb-2" style="border-left: 4px solid; cursor: pointer;" onclick="window.location.href='/news/{news['id']}'">
             <div class="card-body p-2">
                 <h6 class="card-title mb-1" style="font-size: 0.9rem;">{star}{news["title"]}</h6>
-                <p class="card-text small mb-2">{news["content"][:80]}...</p>
+                <p class="card-text small mb-2">{news["content"][:100]}{'...' if len(news['content']) > 100 else ''}</p>
                 <div class="d-flex justify-content-between align-items-center">
                     <small class="text-muted" style="font-size: 0.75rem;">
                         {news["author"]} • {news["created"][:10]}
                     </small>
-                    <span class="badge bg-info" style="font-size: 0.7rem;">💬 {comments_count}</span>
+                    <div>
+                        {'<span class="badge bg-success me-1" style="font-size: 0.7rem;"><i class="bi bi-eye"></i> ' + str(read_count) + '</span>' if is_admin and read_count > 0 else ''}
+                        <span class="badge bg-info" style="font-size: 0.7rem;">💬 {comments_count}</span>
+                    </div>
                 </div>
                 {admin_buttons}
             </div>
@@ -815,8 +888,9 @@ def index():
                     <div class="col-md-6">
                         <!-- Firemní novinky -->
                         <div class="card mb-4">
-                            <div class="card-header">
+                            <div class="card-header d-flex justify-content-between align-items-center">
                                 <h6 class="mb-0"><i class="bi bi-newspaper"></i> Firemní novinky</h6>
+                                {f'<button class="btn btn-primary btn-sm" onclick="showAddNewsModal()"><i class="bi bi-plus"></i> Přidat</button>' if is_admin else ''}
                             </div>
                             <div class="card-body" style="max-height: 500px; overflow-y: auto;">
                                 {news_cards_html if news_cards_html else '<p class="text-muted">Zatím žádné novinky</p>'}
@@ -856,15 +930,20 @@ def add_news():
     
     title = request.form.get('title')
     content = request.form.get('content')
+    content_full = request.form.get('content_full', content)
+    image = request.form.get('image', '')
     featured = 'featured' in request.form
     
     new_news = {
         'id': max([n['id'] for n in NEWS], default=0) + 1,
         'title': title,
         'content': content,
+        'content_full': content_full,
+        'image': image,
         'author': session.get('full_name', 'Neznámý'),
         'created': datetime.now().strftime('%Y-%m-%d %H:%M'),
         'featured': featured,
+        'read_by': [],
         'comments': []
     }
     
@@ -1112,7 +1191,7 @@ def login():
     
     login_form = '''
     <div class="row justify-content-center">
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card">
                 <div class="card-header text-center" style="background: linear-gradient(135deg, #2c5aa0 0%, #1e3a72 100%); color: white;">
                     <h3><i class="bi bi-shield-lock"></i> Prihlaseni do systemu</h3>
@@ -1512,6 +1591,8 @@ def edit_news(news_id):
     
     title = request.form.get('title', '').strip()
     content = request.form.get('content', '').strip()
+    content_full = request.form.get('content_full', content).strip()
+    image = request.form.get('image', '').strip()
     featured = 'featured' in request.form
     
     if not title or not content:
@@ -1529,8 +1610,11 @@ def edit_news(news_id):
         NEWS[news_found].update({
             'title': title,
             'content': content,
+            'content_full': content_full,
+            'image': image,
             'featured': featured
         })
+        save_news()  # Uloží změny do JSON
         flash('Novinka byla úspěšně aktualizována.', 'success')
     else:
         flash('Novinka nebyla nalezena.', 'error')
@@ -1546,6 +1630,7 @@ def delete_news(news_id):
     global NEWS
     original_count = len(NEWS)
     NEWS = [news for news in NEWS if news['id'] != news_id]
+    save_news()  # Uloží změny do JSON
     
     if len(NEWS) < original_count:
         flash('Novinka byla úspěšně smazána.', 'success')
@@ -1553,6 +1638,92 @@ def delete_news(news_id):
         flash('Novinka nebyla nalezena.', 'error')
     
     return redirect(url_for('index'))
+
+@app.route('/news/<int:news_id>')
+def news_detail(news_id):
+    """Zobrazení detailu novinky."""
+    if 'user_id' not in session:
+        flash('Nejste přihlášeni!', 'error')
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+    user = USERS.get(user_id)
+    
+    # Najdeme novinku
+    news_item = None
+    for news in NEWS:
+        if news['id'] == news_id:
+            news_item = news
+            break
+    
+    if not news_item:
+        flash('Novinka nebyla nalezena.', 'error')
+        return redirect(url_for('index'))
+    
+    # Zaznamenáme čtení
+    if 'read_by' not in news_item:
+        news_item['read_by'] = []
+    
+    # Přidáme uživatele do seznamu čtenářů, pokud tam ještě není
+    reader_info = {
+        'user_id': user_id,
+        'full_name': user.get('full_name', 'Neznámý'),
+        'read_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+    
+    # Kontrola, zda uživatel již četl
+    already_read = False
+    for reader in news_item['read_by']:
+        if reader['user_id'] == user_id:
+            already_read = True
+            # Aktualizujeme čas posledního čtení
+            reader['read_at'] = reader_info['read_at']
+            break
+    
+    if not already_read:
+        news_item['read_by'].append(reader_info)
+    
+    save_news()  # Uložíme změny
+    
+    # Vytvoříme HTML pro seznam čtenářů (jen pro admina)
+    readers_html = ''
+    if session.get('role') == 'admin' and news_item.get('read_by'):
+        readers_html = '<div class="card mt-4"><div class="card-header"><h6><i class="bi bi-eye"></i> Přečetli (' + str(len(news_item['read_by'])) + ')</h6></div><div class="card-body"><ul class="list-unstyled">'
+        for reader in news_item['read_by']:
+            readers_html += f"<li><i class='bi bi-person-check'></i> {reader['full_name']} - <small class='text-muted'>{reader['read_at']}</small></li>"
+        readers_html += '</ul></div></div>'
+    
+    content_full = news_item.get('content_full', news_item.get('content', ''))
+    image_html = ''
+    if news_item.get('image'):
+        image_html = f'<img src="{news_item["image"]}" class="img-fluid mb-3" style="max-width: 100%; border-radius: 8px;" alt="Obrázek novinky">'
+    
+    content = f'''
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="mb-3">
+                <a href="/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Zpět na dashboard</a>
+            </div>
+            
+            <div class="card">
+                <div class="card-header" style="background: {'linear-gradient(135deg, #dc3545 0%, #fd7e14 100%)' if news_item.get('featured') else 'linear-gradient(135deg, #2c5aa0 0%, #1e3a72 100%)'}; color: white;">
+                    <h3 class="mb-0">{news_item['title']}</h3>
+                    <small><i class="bi bi-person"></i> {news_item['author']} | <i class="bi bi-calendar"></i> {news_item['created']}</small>
+                </div>
+                <div class="card-body">
+                    {image_html}
+                    <div style="white-space: pre-wrap; line-height: 1.8;">
+                        {content_full}
+                    </div>
+                </div>
+            </div>
+            
+            {readers_html}
+        </div>
+    </div>
+    '''
+    
+    return render_template_string(BASE_TEMPLATE, title=news_item['title'], content=content)
 
 # Funkce pro perzistentní uložení dat
 def save_users():
