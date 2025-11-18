@@ -1,0 +1,67 @@
+[
+  {
+    "id": 3,
+    "title": "Zkouška",
+    "content": "dccdcdcdcd",
+    "content_full": "jbjknvf\r\nfd\r\nvd\r\nv\r\ndv\r\nd\r\nvd\r\n",
+    "image": "https://australiankava.com.au/wp-content/uploads/2024/01/kava-drink-recipe-how-to-create-the-perfect-kava-beverage_363.png",
+    "author": "Administrator Systému",
+    "created": "2025-11-18 20:09",
+    "featured": false,
+    "read_by": [
+      {
+        "user_id": 1,
+        "full_name": "Administrator Systému",
+        "read_at": "2025-11-18 20:11:44"
+      },
+      {
+        "user_id": 2,
+        "full_name": "Jan Novák",
+        "read_at": "2025-11-18 20:10:11"
+      }
+    ],
+    "comments": []
+  },
+  {
+    "id": 1,
+    "title": "Novy system pro spravu vozidel",
+    "content": "Spoustime novy modul pro spravu vozoveho parku. Umozni lepsi sledovani udrzby a spotreby paliva.",
+    "content_full": "Spouštíme nový modul pro správu vozového parku! 🚛\n\nTento komplexní systém umožní:\n- Sledování údržby vozidel\n- Monitoring spotřeby paliva\n- Plánování servisních intervalů\n- Real-time GPS tracking\n- Elektronická kniha jízd\n\nModul bude dostupný od příštího měsíce pro všechny řidiče a dispečery.",
+    "author": "Administrator Systemu",
+    "created": "2024-11-10 10:30",
+    "featured": true,
+    "image": "",
+    "read_by": [
+      {
+        "user_id": 1,
+        "full_name": "Administrator Systému",
+        "read_at": "2025-11-18 20:09:39"
+      }
+    ],
+    "comments": []
+  },
+  {
+    "id": 2,
+    "title": "Aktualizace bezpecnostnich protokolu",
+    "content": "Vsichni ridici si prosim prostudujte nove bezpecnostni smernice v priloze.",
+    "content_full": "Všichni řidiči si prosím prostudujte nové bezpečnostní směrnice.\n\nKlíčové změny:\n- Nové postupy při nakládce nebezpečného nákladu\n- Aktualizované formuláře pro hlášení nehod\n- Povinné kontroly před jízdou\n\nDokumenty najdete v sekci Dokumenty.",
+    "author": "Administrator Systemu",
+    "created": "2024-11-08 14:15",
+    "featured": false,
+    "image": "",
+    "read_by": [
+      {
+        "user_id": 2,
+        "full_name": "Jan Novák",
+        "read_at": "2025-11-18 20:10:23"
+      }
+    ],
+    "comments": [
+      {
+        "author": "Jan Novak",
+        "text": "Dokumenty jsem prostudoval",
+        "time": "2024-11-09 08:00"
+      }
+    ]
+  }
+]

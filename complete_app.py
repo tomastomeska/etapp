@@ -703,7 +703,7 @@ def index():
         <div class="card {featured_class} mb-2" style="border-left: 4px solid; cursor: pointer;" onclick="window.location.href='/news/{news['id']}'">
             <div class="card-body p-2">
                 <h6 class="card-title mb-1" style="font-size: 0.9rem;">{star}{news["title"]}</h6>
-                <p class="card-text small mb-2">{news["content"][:100]}{'...' if len(news['content']) > 100 else ''}</p>
+                <p class="card-text small mb-2"><strong>{news["content"][:100]}{'...' if len(news['content']) > 100 else ''}</strong></p>
                 <div class="d-flex justify-content-between align-items-center">
                     <small class="text-muted" style="font-size: 0.75rem;">
                         {news["author"]} • {news["created"][:10]}
@@ -1696,7 +1696,7 @@ def news_detail(news_id):
     content_full = news_item.get('content_full', news_item.get('content', ''))
     image_html = ''
     if news_item.get('image'):
-        image_html = f'<img src="{news_item["image"]}" class="img-fluid mb-3" style="max-width: 100%; border-radius: 8px;" alt="Obrázek novinky">'
+        image_html = f'<div class="text-center mb-4"><img src="{news_item["image"]}" class="img-fluid" style="max-width: 100%; max-height: 500px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" alt="Obrázek novinky"></div>'
     
     content = f'''
     <div class="row justify-content-center">
