@@ -79,17 +79,26 @@ NEWS = [
     }
 ]
 
-MESSAGES = [
-    {
-        'id': 1,
-        'from': 'Administrator Systemu',
-        'to': 'Jan Novak',
-        'subject': 'Nove smernice',
-        'content': 'Zdravim Jene, prosim prostuduj si nove smernice pro mezinarodni prepravu.',
-        'created': '2024-11-12 09:15',
-        'read': False
-    }
-]
+MESSAGES = []
+
+# Načtení zpráv z JSON
+if os.path.exists('data_messages.json'):
+    with open('data_messages.json', 'r', encoding='utf-8') as f:
+        MESSAGES = json.load(f)
+else:
+    MESSAGES = [
+        {
+            'id': 1,
+            'from_user_id': 1,
+            'from_name': 'Administrátor Systému',
+            'subject': 'Vítejte v systému',
+            'content': 'Vítejte v novém firemním portálu European Transport CZ!',
+            'created': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'recipient_type': 'all',  # all, ridic, administrativa, single
+            'recipient_user_id': None,  # pouze pokud recipient_type = single
+            'read_by': []  # seznam {'user_id': X, 'read_at': 'timestamp'}
+        }
+    ]
 
 APPLICATIONS = [
     {'id': 1, 'name': 'Sprava vozidel', 'icon': '🚛', 'status': 'planned', 'description': 'Modul pro spravu vozoveho parku', 'visible_for_ridic': True},
@@ -668,7 +677,19 @@ def index():
     is_admin = user['role'] == 'admin'
     
     # Pocitani statistik
-    unread_messages = len([m for m in MESSAGES if not m['read']])
+    unread_messages = 0
+    for msg in MESSAGES:
+        # Zpráva je nepřečtená pokud user_id není v read_by
+        if user_id not in [r.get('user_id') for r in msg.get('read_by', [])]:
+            # A zároveň je zpráva určená pro tento uživatele
+            recipient_type = msg.get('recipient_type', 'all')
+            recipient_user_id = msg.get('recipient_user_id')
+            
+            if recipient_type == 'all' or \
+               (recipient_type == 'single' and recipient_user_id == user_id) or \
+               (recipient_type == user['role']):
+                unread_messages += 1
+    
     total_users = len(USERS)
     total_news = len(NEWS)
     
@@ -1281,35 +1302,86 @@ def users():
     if 'user_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('login'))
     
+    # Parametr pro zobrazení smazaných
+    show_deleted = request.args.get('show_deleted') == 'true'
+    
+    # Seznam avatarů
+    avatar_options = [
+        'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
+        'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka',
+        'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob',
+        'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice',
+        'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
+        'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
+        'https://api.dicebear.com/7.x/bottts/svg?seed=Robot1',
+        'https://api.dicebear.com/7.x/bottts/svg?seed=Robot2',
+    ]
+    
     # Vygenerování HTML pro seznam uživatelů
     users_html = ''
+    deleted_users_html = ''
+    
     for user in USERS.values():
-        status_badge = '<span class="badge bg-success">Aktivní</span>' if user.get('active', True) else '<span class="badge bg-danger">Neaktivní</span>'
+        is_deleted = user.get('deleted', False)
+        
+        # Pokud je smazaný a nechceme zobrazit smazané, přeskočíme
+        if is_deleted and not show_deleted:
+            continue
+        
+        # Pokud není smazaný a chceme zobrazit pouze smazané, přeskočíme
+        if not is_deleted and show_deleted:
+            continue
+            
+        status_badge = '<span class="badge bg-success">Aktivní</span>' if user.get('active', True) and not is_deleted else '<span class="badge bg-danger">Neaktivní</span>' if not is_deleted else '<span class="badge bg-secondary">Smazán</span>'
         role_badge_class = 'admin-badge' if user['role'] == 'admin' else 'user-badge'
         role_name = {'admin': 'Admin', 'ridic': 'Řidič', 'administrativa': 'Administrativa'}.get(user['role'], user['role'].title())
         
-        delete_button = f'<button class="btn btn-outline-danger btn-sm" onclick="deleteUser({user["id"]}, \\"{user["username"]}\\")"><i class="bi bi-trash"></i> Smazat</button>' if user['id'] != session.get('user_id') else '<span class="text-muted small">Vlastní účet</span>'
+        if is_deleted:
+            # Tlačítka pro smazané uživatele
+            action_buttons = f'''
+                <button class="btn btn-success btn-sm" onclick="restoreUser({user['id']}, '{user['username']}')">
+                    <i class="bi bi-arrow-counterclockwise"></i> Obnovit
+                </button>
+            '''
+        else:
+            # Tlačítka pro aktivní uživatele
+            message_button = f'<button class="btn btn-outline-info btn-sm" onclick="sendMessageToUser({user['id']}, \\"{user['full_name']}\\")"><i class="bi bi-envelope"></i></button>'
+            delete_button = f'<button class="btn btn-outline-danger btn-sm" onclick="deleteUser({user['id']}, \\"{user['username']}\\")"><i class="bi bi-trash"></i></button>' if user['id'] != session.get('user_id') else '<span class="text-muted small">Vlastní</span>'
+            
+            action_buttons = f'''
+                <div class="btn-group btn-group-sm">
+                    {message_button}
+                    <button class="btn btn-outline-primary btn-sm" onclick="editUser({user['id']}, \\'{user['username']}\\', \\'{user['email']}\\', \\'{user['full_name']}\\', \\'{user['role']}\\', \\'{user.get('avatar', '')}\\', {str(user.get('active', True)).lower()})">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    {delete_button}
+                </div>
+            '''
         
-        users_html += f'''
-        <tr>
+        user_row = f'''
+        <tr class="{'table-secondary' if is_deleted else ''}">
             <td><img src="{user.get('avatar', 'https://via.placeholder.com/40')}" alt="Avatar" class="rounded-circle" width="40" height="40"></td>
             <td>
                 <strong>{user['full_name']}</strong><br>
                 <small class="text-muted">{user['username']}</small>
+                {f'<br><small class="text-danger">Smazán: {user.get("deleted_at", "")}</small>' if is_deleted else ''}
             </td>
             <td>{user['email']}</td>
             <td><span class="badge {role_badge_class}">{role_name}</span></td>
             <td>{status_badge}</td>
-            <td>
-                <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-primary btn-sm" onclick="editUser({user['id']}, '{user['username']}', '{user['email']}', '{user['full_name']}', '{user['role']}', {str(user.get('active', True)).lower()})">
-                        <i class="bi bi-pencil"></i> Upravit
-                    </button>
-                    {delete_button}
-                </div>
-            </td>
+            <td>{action_buttons}</td>
         </tr>
         '''
+        
+        if is_deleted:
+            deleted_users_html += user_row
+        else:
+            users_html += user_row
+    
+    # Vygenerování HTML pro avatary
+    avatars_html = ''
+    for av in avatar_options:
+        avatars_html += f'<div class="col-3"><img src="{av}" class="img-thumbnail avatar-option" style="cursor: pointer; width: 100%;" onclick="selectAvatar(\'{av}\')" data-avatar="{av}"></div>'
     
     content = f'''
     <div class="container-fluid">
@@ -1326,28 +1398,41 @@ def users():
                         <div class="row text-center">
                             <div class="col-4">
                                 <div class="border rounded p-2">
-                                    <h4>{len(USERS)}</h4>
-                                    <small>Uživatelů</small>
+                                    <h4>{len([u for u in USERS.values() if not u.get('deleted', False)])}</h4>
+                                    <small>Aktivní</small>
                                 </div>
                             </div>
                             <div class="col-4">
                                 <div class="border rounded p-2">
-                                    <h4>{len([u for u in USERS.values() if u.get('active', True)])}</h4>
-                                    <small>Aktivních</small>
+                                    <h4>{len([u for u in USERS.values() if u.get('deleted', False)])}</h4>
+                                    <small>Smazaní</small>
                                 </div>
                             </div>
                             <div class="col-4">
                                 <div class="border rounded p-2">
-                                    <h4>{len([u for u in USERS.values() if u['role'] == 'admin'])}</h4>
-                                    <small>Adminů</small>
+                                    <h4>{len([u for u in USERS.values() if u['role'] == 'admin' and not u.get('deleted', False)])}</h4>
+                                    <small>Admini</small>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
+                    <!-- Filtry -->
+                    <div class="mb-3">
+                        <a href="/users" class="btn btn-outline-primary btn-sm w-100 mb-2 {'active' if not show_deleted else ''}">
+                            <i class="bi bi-people"></i> Aktivní uživatelé
+                        </a>
+                        <a href="/users?show_deleted=true" class="btn btn-outline-danger btn-sm w-100 {'active' if show_deleted else ''}">
+                            <i class="bi bi-trash"></i> Smazaní uživatelé
+                        </a>
+                    </div>
+                    
                     <!-- Tlačítko pro přidání uživatele -->
                     <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#addUserModal">
                         <i class="bi bi-person-plus"></i> Přidat uživatele
+                    </button>
+                    <button class="btn btn-primary w-100 mt-2" data-bs-toggle="modal" data-bs-target="#sendMessageModal">
+                        <i class="bi bi-envelope"></i> Odeslat zprávu skupině
                     </button>
                 </div>
             </div>
@@ -1435,7 +1520,7 @@ def users():
     
     <!-- Modal pro editaci uživatele -->
     <div class="modal fade" id="editUserModal" tabindex="-1" data-bs-backdrop="static">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"><i class="bi bi-pencil"></i> Upravit uživatele</h5>
@@ -1443,29 +1528,49 @@ def users():
                 </div>
                 <form id="editUserForm" method="POST">
                     <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Uživatelské jméno</label>
-                            <input type="text" class="form-control" id="editUsername" name="username" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Celé jméno</label>
-                            <input type="text" class="form-control" id="editFullName" name="full_name" required>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Uživatelské jméno</label>
+                                    <input type="text" class="form-control" id="editUsername" name="username" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Celé jméno</label>
+                                    <input type="text" class="form-control" id="editFullName" name="full_name" required>
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Email</label>
                             <input type="email" class="form-control" id="editUserEmail" name="email" required>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Role</label>
-                            <select class="form-control" id="editUserRole" name="role" required>
-                                <option value="ridic">Řidič</option>
-                                <option value="administrativa">Administrativa</option>
-                                <option value="admin">Admin</option>
-                            </select>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Role</label>
+                                    <select class="form-control" id="editUserRole" name="role" required>
+                                        <option value="ridic">Řidič</option>
+                                        <option value="administrativa">Administrativa</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Nové heslo (ponechte prázdné)</label>
+                                    <input type="password" class="form-control" name="password">
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Nové heslo (ponechte prázdné pro beze změny)</label>
-                            <input type="password" class="form-control" name="password">
+                            <label class="form-label">Avatar</label>
+                            <div class="row g-2">
+                                {avatars_html}
+                            </div>
+                            <input type="hidden" id="editUserAvatar" name="avatar" value="">
+                            <small class="text-muted">Klikněte na avatar pro výběr</small>
                         </div>
                         <div class="form-check">
                             <input type="checkbox" class="form-check-input" id="editUserActive" name="active" checked>
@@ -1481,14 +1586,101 @@ def users():
         </div>
     </div>
     
+    <!-- Modal pro odeslání zprávy uživateli -->
+    <div class="modal fade" id="sendUserMessageModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-envelope"></i> Odeslat zprávu uživateli</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="sendUserMessageForm" method="POST" action="/admin/send_message">
+                    <input type="hidden" id="messageRecipientId" name="recipient_user_id">
+                    <input type="hidden" name="recipient_type" value="single">
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> Odesílá se uživateli: <strong id="messageRecipientName"></strong>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Předmět</label>
+                            <input type="text" class="form-control" name="subject" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Zpráva</label>
+                            <textarea class="form-control" name="content" rows="5" required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zrušit</button>
+                        <button type="submit" class="btn btn-primary">Odeslat zprávu</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal pro odeslání zprávy skupině -->
+    <div class="modal fade" id="sendMessageModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-broadcast"></i> Odeslat zprávu skupině</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="/admin/send_message">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Příjemci</label>
+                            <select class="form-control" name="recipient_type" required>
+                                <option value="all">Všichni uživatelé</option>
+                                <option value="ridic">Pouze řidiči</option>
+                                <option value="administrativa">Pouze administrativa</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Předmět</label>
+                            <input type="text" class="form-control" name="subject" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Zpráva</label>
+                            <textarea class="form-control" name="content" rows="5" required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zrušit</button>
+                        <button type="submit" class="btn btn-primary">Odeslat zprávu</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
     <script>
-    function editUser(id, username, email, fullName, role, active) {{
+    function selectAvatar(url) {{
+        document.getElementById('editUserAvatar').value = url;
+        document.querySelectorAll('.avatar-option').forEach(img => {{
+            img.style.border = '';
+        }});
+        document.querySelector(`[data-avatar="${{url}}"]`).style.border = '3px solid #007bff';
+    }}
+    
+    function editUser(id, username, email, fullName, role, avatar, active) {{
         document.getElementById('editUserForm').action = '/admin/edit_user/' + id;
         document.getElementById('editUsername').value = username;
         document.getElementById('editUserEmail').value = email;
         document.getElementById('editFullName').value = fullName;
         document.getElementById('editUserRole').value = role;
         document.getElementById('editUserActive').checked = active;
+        document.getElementById('editUserAvatar').value = avatar;
+        
+        // Zvýraznit vybraný avatar
+        document.querySelectorAll('.avatar-option').forEach(img => {{
+            if (img.getAttribute('data-avatar') === avatar) {{
+                img.style.border = '3px solid #007bff';
+            }} else {{
+                img.style.border = '';
+            }}
+        }});
         
         new bootstrap.Modal(document.getElementById('editUserModal')).show();
     }}
@@ -1504,6 +1696,25 @@ def users():
                 location.reload();
             }});
         }}
+    }}
+    
+    function restoreUser(id, username) {{
+        if (confirm('Opravdu chcete obnovit uživatele ' + username + '?')) {{
+            fetch('/admin/restore_user/' + id, {{
+                method: 'POST',
+                headers: {{
+                    'Content-Type': 'application/json',
+                }}
+            }}).then(() => {{
+                location.reload();
+            }});
+        }}
+    }}
+    
+    function sendMessageToUser(id, name) {{
+        document.getElementById('messageRecipientId').value = id;
+        document.getElementById('messageRecipientName').textContent = name;
+        new bootstrap.Modal(document.getElementById('sendUserMessageModal')).show();
     }}
     </script>
     '''
@@ -1566,6 +1777,10 @@ def edit_user(user_id):
     role = request.form.get('role', 'ridic')
     full_name = request.form.get('full_name', '').strip()
     password = request.form.get('password', '').strip()
+    avatar = request.form.get('avatar', '').strip()
+    active = 'active' in request.form
+    full_name = request.form.get('full_name', '').strip()
+    password = request.form.get('password', '').strip()
     active = 'active' in request.form
     
     # Validace
@@ -1612,9 +1827,30 @@ def delete_user(user_id):
     
     if user_id in USERS:
         username = USERS[user_id]['username']
-        del USERS[user_id]
+        # Soft delete - pouze označíme jako smazaného
+        USERS[user_id]['deleted'] = True
+        USERS[user_id]['deleted_at'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        USERS[user_id]['deleted_by'] = session.get('full_name', 'Admin')
+        USERS[user_id]['active'] = False
         save_users()  # Uložit do JSON
         flash(f'Uživatel {username} byl úspěšně smazán.', 'success')
+    else:
+        flash('Uživatel nebyl nalezen.', 'error')
+    
+    return redirect(url_for('users'))
+
+@app.route('/admin/restore_user/<int:user_id>', methods=['POST'])
+def restore_user(user_id):
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    if user_id in USERS and USERS[user_id].get('deleted'):
+        USERS[user_id]['deleted'] = False
+        USERS[user_id]['deleted_at'] = ''
+        USERS[user_id]['deleted_by'] = ''
+        USERS[user_id]['active'] = True
+        save_users()
+        flash(f'Uživatel {USERS[user_id]["username"]} byl obnoven.', 'success')
     else:
         flash('Uživatel nebyl nalezen.', 'error')
     
