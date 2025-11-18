@@ -771,22 +771,63 @@ def index():
     # Originální news_html pro kompatibilitu
     news_html = news_cards_html
     
-    # Zpravy
+    # Zprávy - zobrazit pouze ty relevantní pro uživatele
     messages_html = ""
     for message in MESSAGES:
-        unread_class = "unread" if not message["read"] else ""
+        # Zkontrolovat jestli je zpráva určená pro tohoto uživatele
+        recipient_type = message.get('recipient_type', 'all')
+        recipient_user_id = message.get('recipient_user_id')
+        
+        is_for_user = False
+        if recipient_type == 'all':
+            is_for_user = True
+        elif recipient_type == 'single' and recipient_user_id == user_id:
+            is_for_user = True
+        elif recipient_type == user['role']:
+            is_for_user = True
+        
+        if not is_for_user:
+            continue
+        
+        # Zkontrolovat jestli už je přečtená
+        is_read = user_id in [r.get('user_id') for r in message.get('read_by', [])]
+        unread_class = "" if is_read else "unread"
+        unread_badge = '' if is_read else '<span class="badge bg-danger">Nová</span>'
+        
+        # Určit příjemce pro zobrazení
+        recipient_text = ''
+        if recipient_type == 'all':
+            recipient_text = 'Pro všechny'
+        elif recipient_type == 'single':
+            recipient_text = 'Pouze pro vás'
+        elif recipient_type == 'ridic':
+            recipient_text = 'Pro řidiče'
+        elif recipient_type == 'administrativa':
+            recipient_text = 'Pro administrativu'
+        
         messages_html += f'''
         <div class="card mb-2 message-item {unread_class}">
-            <div class="card-body p-3">
-                <div class="d-flex justify-content-between">
-                    <strong>{message["subject"]}</strong>
-                    <small class="text-muted">{message["created"]}</small>
+            <div class="card-body p-2">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1" style="font-size: 0.9rem;">
+                            {message.get('subject', 'Bez předmětu')} {unread_badge}
+                        </h6>
+                        <p class="mb-1 small">{message.get('content', '')[:80]}{'...' if len(message.get('content', '')) > 80 else ''}</p>
+                        <small class="text-muted">
+                            <i class="bi bi-person"></i> {message.get('from_name', 'Systém')} | 
+                            <i class="bi bi-clock"></i> {message.get('created', '')[:16]}
+                        </small><br>
+                        <small class="text-muted"><i class="bi bi-envelope"></i> {recipient_text}</small>
+                    </div>
+                    {f'<button class="btn btn-sm btn-outline-success" onclick="markMessageRead({message['id']})"><i class="bi bi-check"></i></button>' if not is_read else '<small class="text-success"><i class="bi bi-check2-circle"></i> Přečteno</small>'}
                 </div>
-                <p class="mb-1">{message["content"][:100]}...</p>
-                <small class="text-muted">Od: {message["from"]} → {message["to"]}</small>
             </div>
         </div>
         '''
+    
+    if not messages_html:
+        messages_html = '<p class="text-muted small">Žádné zprávy</p>'
     
     # Aplikace pro levy panel - filtrujeme podle role
     apps_html = ""
@@ -971,6 +1012,19 @@ def index():
 
         </div>
     </div>
+    
+    <script>
+    function markMessageRead(messageId) {{
+        fetch('/message/' + messageId + '/mark_read', {{
+            method: 'POST',
+            headers: {{
+                'Content-Type': 'application/json',
+            }}
+        }}).then(() => {{
+            location.reload();
+        }});
+    }}
+    </script>
     '''
     
     return render_template_string(BASE_TEMPLATE, title="Dashboard", content=content)
@@ -1855,6 +1909,72 @@ def restore_user(user_id):
         flash('Uživatel nebyl nalezen.', 'error')
     
     return redirect(url_for('users'))
+
+@app.route('/admin/send_message', methods=['POST'])
+def send_message():
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    subject = request.form.get('subject', '').strip()
+    content = request.form.get('content', '').strip()
+    recipient_type = request.form.get('recipient_type', 'all')  # all, ridic, administrativa, single
+    recipient_user_id = request.form.get('recipient_user_id')
+    
+    if not subject or not content:
+        flash('Předmět a obsah zprávy jsou povinné.', 'error')
+        return redirect(url_for('users'))
+    
+    # Vytvoření nové zprávy
+    new_id = max([m['id'] for m in MESSAGES], default=0) + 1
+    from_user = USERS[session['user_id']]
+    
+    new_message = {
+        'id': new_id,
+        'from_user_id': session['user_id'],
+        'from_name': from_user['full_name'],
+        'subject': subject,
+        'content': content,
+        'created': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'recipient_type': recipient_type,
+        'recipient_user_id': int(recipient_user_id) if recipient_user_id else None,
+        'read_by': []
+    }
+    
+    MESSAGES.append(new_message)
+    save_messages()
+    
+    # Zpráva o úspěchu
+    if recipient_type == 'all':
+        flash('Zpráva byla odeslána všem uživatelům.', 'success')
+    elif recipient_type == 'single':
+        recipient = USERS.get(int(recipient_user_id))
+        if recipient:
+            flash(f'Zpráva byla odeslána uživateli {recipient["full_name"]}.', 'success')
+    else:
+        role_names = {'ridic': 'řidičům', 'administrativa': 'administrativě'}
+        flash(f'Zpráva byla odeslána {role_names.get(recipient_type, "skupině")}.', 'success')
+    
+    return redirect(url_for('users'))
+
+@app.route('/message/<int:message_id>/mark_read', methods=['POST'])
+def mark_message_read(message_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+    
+    for msg in MESSAGES:
+        if msg['id'] == message_id:
+            # Zkontrolovat jestli už není přečteno
+            if user_id not in [r.get('user_id') for r in msg.get('read_by', [])]:
+                msg['read_by'].append({
+                    'user_id': user_id,
+                    'read_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                })
+                save_messages()
+            break
+    
+    return redirect(url_for('index'))
 
 @app.route('/admin/edit_news/<int:news_id>', methods=['POST'])
 def edit_news(news_id):
