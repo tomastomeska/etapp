@@ -1,5 +1,23 @@
 [
   {
+    "id": 5,
+    "title": "kjhjknkln",
+    "content": "kjnk",
+    "content_full": "jknknkjnjknjknjknkjkjnjknkjn",
+    "image": "",
+    "author": "Administrator Systému",
+    "created": "2025-11-18 20:41",
+    "featured": true,
+    "read_by": [
+      {
+        "user_id": 1,
+        "full_name": "Administrator Systému",
+        "read_at": "2025-11-18 20:42:19"
+      }
+    ],
+    "comments": []
+  },
+  {
     "id": 4,
     "title": "Zkouška",
     "content": "Novinky Listopad 2025",
@@ -12,7 +30,7 @@
       {
         "user_id": 1,
         "full_name": "Administrator Systému",
-        "read_at": "2025-11-18 20:37:57"
+        "read_at": "2025-11-18 20:42:17"
       },
       {
         "user_id": 2,
@@ -71,7 +89,7 @@
       {
         "user_id": 1,
         "full_name": "Administrator Systému",
-        "read_at": "2025-11-18 20:16:47"
+        "read_at": "2025-11-18 20:42:12"
       },
       {
         "user_id": 2,
@@ -94,7 +112,7 @@
       {
         "user_id": 1,
         "full_name": "Administrator Systému",
-        "read_at": "2025-11-18 20:34:37"
+        "read_at": "2025-11-18 20:42:09"
       },
       {
         "user_id": 2,
@@ -148,35 +166,6 @@
         "edited": false,
         "deleted": false,
         "replies": []
-      }
-    ]
-  },
-  {
-    "id": 2,
-    "title": "Aktualizace bezpecnostnich protokolu",
-    "content": "Vsichni ridici si prosim prostudujte nove bezpecnostni smernice v priloze.",
-    "content_full": "Všichni řidiči si prosím prostudujte nové bezpečnostní směrnice.\n\nKlíčové změny:\n- Nové postupy při nakládce nebezpečného nákladu\n- Aktualizované formuláře pro hlášení nehod\n- Povinné kontroly před jízdou\n\nDokumenty najdete v sekci Dokumenty.",
-    "author": "Administrator Systemu",
-    "created": "2024-11-08 14:15",
-    "featured": false,
-    "image": "",
-    "read_by": [
-      {
-        "user_id": 2,
-        "full_name": "Jan Novák",
-        "read_at": "2025-11-18 20:23:15"
-      },
-      {
-        "user_id": 1,
-        "full_name": "Administrator Systému",
-        "read_at": "2025-11-18 20:17:52"
-      }
-    ],
-    "comments": [
-      {
-        "author": "Jan Novak",
-        "text": "Dokumenty jsem prostudoval",
-        "time": "2024-11-09 08:00"
       }
     ]
   }

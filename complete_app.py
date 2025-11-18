@@ -672,6 +672,14 @@ def index():
     total_users = len(USERS)
     total_news = len(NEWS)
     
+    # Počet nepřečtených novinek pro aktuálního uživatele
+    unread_news = 0
+    for news in NEWS:
+        # Novinka je nepřečtená, pokud uživatel není v seznamu read_by
+        readers = [r['user_id'] for r in news.get('read_by', [])]
+        if user_id not in readers:
+            unread_news += 1
+    
     # Kompaktní verze novinek pro sidebar - zobrazit pouze 3 nejnovější
     news_cards_html = ""
     display_limit = 3
@@ -831,8 +839,8 @@ def index():
                 <div class="mb-4">
                     <h6><i class="bi bi-bar-chart"></i> Statistiky</h6>
                     <ul class="list-unstyled small">
-                        <li><i class="bi bi-newspaper"></i> Novinky: {total_news}</li>
-                        <li><i class="bi bi-envelope"></i> Nepřečteno: {unread_messages}</li>
+                        <li><i class="bi bi-newspaper"></i> Nepřečtené novinky: {unread_news}</li>
+                        <li><i class="bi bi-envelope"></i> Nepřečtené zprávy: {unread_messages}</li>
                         <li><i class="bi bi-clock"></i> Online: {datetime.now().strftime("%H:%M")}</li>
                         {f'<li class="mt-2"><a href="/admin/deleted-comments" class="btn btn-outline-danger btn-sm w-100"><i class="bi bi-trash"></i> Smazané komentáře</a></li>' if is_admin else ''}
                     </ul>
