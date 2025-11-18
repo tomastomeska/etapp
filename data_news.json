@@ -12,7 +12,7 @@
       {
         "user_id": 1,
         "full_name": "Administrator Systému",
-        "read_at": "2025-11-18 20:22:00"
+        "read_at": "2025-11-18 20:37:57"
       },
       {
         "user_id": 2,
@@ -20,7 +20,43 @@
         "read_at": "2025-11-18 20:23:08"
       }
     ],
-    "comments": []
+    "comments": [
+      {
+        "id": 1,
+        "user_id": 1,
+        "author": "Administrator Systému",
+        "text": "hgvghvhg",
+        "created": "2025-11-18 20:37:14",
+        "edited": false,
+        "deleted": false,
+        "replies": [
+          {
+            "id": 2,
+            "user_id": 1,
+            "author": "Administrator Systému",
+            "text": "hgfztgvzhv",
+            "created": "2025-11-18 20:37:47",
+            "edited": false,
+            "deleted": false,
+            "replies": [
+              {
+                "id": 2,
+                "user_id": 1,
+                "author": "Administrator Systému",
+                "text": "jhbjhb",
+                "created": "2025-11-18 20:37:57",
+                "edited": false,
+                "deleted": false,
+                "replies": []
+              }
+            ]
+          }
+        ],
+        "delete_reason": "",
+        "deleted_by": "",
+        "deleted_at": ""
+      }
+    ]
   },
   {
     "id": 3,
@@ -58,7 +94,7 @@
       {
         "user_id": 1,
         "full_name": "Administrator Systému",
-        "read_at": "2025-11-18 20:25:52"
+        "read_at": "2025-11-18 20:34:37"
       },
       {
         "user_id": 2,
@@ -80,16 +116,38 @@
             "id": 2,
             "user_id": 1,
             "author": "Administrator Systému",
-            "text": "není zač",
+            "text": "takhle je to super",
             "created": "2025-11-18 20:24:07",
-            "edited": false,
+            "edited": true,
             "deleted": false,
-            "replies": []
+            "replies": [
+              {
+                "id": 3,
+                "user_id": 1,
+                "author": "Administrator Systému",
+                "text": "co je na tom super?",
+                "created": "2025-11-18 20:30:13",
+                "edited": false,
+                "deleted": false,
+                "replies": []
+              }
+            ],
+            "edited_at": "2025-11-18 20:30:24"
           }
         ],
         "delete_reason": "Urážející komentář",
         "deleted_by": "Administrator Systému",
         "deleted_at": "2025-11-18 20:25:42"
+      },
+      {
+        "id": 2,
+        "user_id": 1,
+        "author": "Administrator Systému",
+        "text": "takhle je to super",
+        "created": "2025-11-18 20:26:46",
+        "edited": false,
+        "deleted": false,
+        "replies": []
       }
     ]
   },

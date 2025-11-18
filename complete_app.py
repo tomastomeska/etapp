@@ -834,6 +834,7 @@ def index():
                         <li><i class="bi bi-newspaper"></i> Novinky: {total_news}</li>
                         <li><i class="bi bi-envelope"></i> Nepřečteno: {unread_messages}</li>
                         <li><i class="bi bi-clock"></i> Online: {datetime.now().strftime("%H:%M")}</li>
+                        {f'<li class="mt-2"><a href="/admin/deleted-comments" class="btn btn-outline-danger btn-sm w-100"><i class="bi bi-trash"></i> Smazané komentáře</a></li>' if is_admin else ''}
                     </ul>
                 </div>
 
@@ -1733,12 +1734,23 @@ def news_detail(news_id):
         margin_left = f"margin-left: {depth * 30}px;" if depth > 0 else ""
         
         if is_deleted:
+            restore_button = ''
+            if is_admin_user:
+                restore_button = f'''
+                <form method="POST" action="/news/{news_id}/comment/{comment_id}/restore" style="display: inline;" class="mt-2">
+                    <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Opravdu chcete obnovit tento komentář?')">
+                        <i class="bi bi-arrow-counterclockwise"></i> Obnovit komentář
+                    </button>
+                </form>
+                '''
             return f'''
             <div class="card mb-2 bg-light" style="{margin_left}">
                 <div class="card-body p-2">
-                    <small class="text-muted"><i class="bi bi-trash"></i> Komentář byl smazán administrátorem</small>
-                    <div class="mt-1"><small class="text-danger"><strong>Důvod:</strong> {comment.get('delete_reason', 'Nezadán')}</small></div>
+                    <small class="text-muted"><i class="bi bi-trash"></i> Komentář od <strong>{comment.get('author', 'Neznámý')}</strong> byl smazán administrátorem</small>
+                    <div class="mt-1"><small class="text-muted">Původní datum: {comment.get('created', '')}</small></div>
+                    <div class="mt-1"><small class="text-danger"><strong>Důvod smazání:</strong> {comment.get('delete_reason', 'Nezadán')}</small></div>
                     <small class="text-muted">Smazal: {comment.get('deleted_by', 'Admin')} | {comment.get('deleted_at', '')}</small>
+                    {restore_button}
                 </div>
             </div>
             '''
@@ -1764,6 +1776,11 @@ def news_detail(news_id):
                 <div class="mt-2" id="comment-text-{comment_id}">
                     <p class="mb-0" style="white-space: pre-wrap;">{comment['text']}</p>
                 </div>
+                {f'''
+                <button class="btn btn-sm btn-link text-decoration-none p-0 mt-1" onclick="toggleReplies({comment_id})" id="toggle-btn-{comment_id}">
+                    <i class="bi bi-chevron-down" id="toggle-icon-{comment_id}"></i> {len(comment.get('replies', []))} {'odpověď' if len(comment.get('replies', [])) == 1 else 'odpovědi' if len(comment.get('replies', [])) < 5 else 'odpovědí'}
+                </button>
+                ''' if comment.get('replies') and len(comment.get('replies', [])) > 0 else ''}
                 <div id="edit-form-{comment_id}" style="display: none;">
                     <form method="POST" action="/news/{news_id}/comment/{comment_id}/edit">
                         <textarea class="form-control form-control-sm mb-2" name="text" rows="3" required>{comment['text']}</textarea>
@@ -1785,8 +1802,11 @@ def news_detail(news_id):
         
         # Přidání odpovědí
         replies_html = ''
-        for reply in comment.get('replies', []):
-            replies_html += render_comment(reply, depth + 1)
+        if comment.get('replies'):
+            replies_html = f'<div id="replies-{comment_id}" style="display: none;">'
+            for reply in comment.get('replies', []):
+                replies_html += render_comment(reply, depth + 1)
+            replies_html += '</div>'
         
         return comment_html + replies_html
     
@@ -1898,6 +1918,19 @@ def news_detail(news_id):
             form.action = '/news/{news_id}/comment/' + commentId + '/delete';
             const modal = new bootstrap.Modal(document.getElementById('deleteCommentModal'));
             modal.show();
+        }}
+        
+        function toggleReplies(commentId) {{
+            const repliesDiv = document.getElementById('replies-' + commentId);
+            const icon = document.getElementById('toggle-icon-' + commentId);
+            
+            if (repliesDiv.style.display === 'none') {{
+                repliesDiv.style.display = 'block';
+                icon.className = 'bi bi-chevron-up';
+            }} else {{
+                repliesDiv.style.display = 'none';
+                icon.className = 'bi bi-chevron-down';
+            }}
         }}
     </script>
     '''
@@ -2070,6 +2103,143 @@ def delete_comment(news_id, comment_id):
         flash('Komentář nebyl nalezen!', 'error')
     
     return redirect(url_for('news_detail', news_id=news_id))
+
+@app.route('/news/<int:news_id>/comment/<int:comment_id>/restore', methods=['POST'])
+def restore_comment(news_id, comment_id):
+    """Obnovení smazaného komentáře (pouze admin)."""
+    if 'user_id' not in session or session.get('role') != 'admin':
+        flash('Nemáte oprávnění!', 'error')
+        return redirect(url_for('login'))
+    
+    # Najdeme novinku
+    news_item = None
+    for news in NEWS:
+        if news['id'] == news_id:
+            news_item = news
+            break
+    
+    if not news_item:
+        flash('Novinka nebyla nalezena.', 'error')
+        return redirect(url_for('index'))
+    
+    # Najdeme a obnovíme komentář
+    def restore(comments):
+        for comment in comments:
+            if comment['id'] == comment_id:
+                comment['deleted'] = False
+                comment['delete_reason'] = ''
+                comment['deleted_by'] = ''
+                comment['deleted_at'] = ''
+                return True
+            if comment.get('replies'):
+                if restore(comment['replies']):
+                    return True
+        return False
+    
+    if restore(news_item.get('comments', [])):
+        save_news()
+        flash('Komentář byl obnoven!', 'success')
+    else:
+        flash('Komentář nebyl nalezen!', 'error')
+    
+    # Vrátit na stránku odkud přišel (referer) nebo na detail novinky
+    referer = request.referrer
+    if referer and 'deleted-comments' in referer:
+        return redirect(url_for('admin_deleted_comments'))
+    else:
+        return redirect(url_for('news_detail', news_id=news_id))
+
+@app.route('/admin/deleted-comments')
+def admin_deleted_comments():
+    """Admin panel pro správu smazaných komentářů."""
+    if 'user_id' not in session or session.get('role') != 'admin':
+        flash('Nemáte oprávnění!', 'error')
+        return redirect(url_for('login'))
+    
+    # Najdeme všechny smazané komentáře
+    deleted_comments = []
+    
+    def find_deleted(comments, news_title, news_id):
+        for comment in comments:
+            if comment.get('deleted'):
+                deleted_comments.append({
+                    'comment': comment,
+                    'news_title': news_title,
+                    'news_id': news_id
+                })
+            if comment.get('replies'):
+                find_deleted(comment['replies'], news_title, news_id)
+    
+    for news in NEWS:
+        find_deleted(news.get('comments', []), news['title'], news['id'])
+    
+    # Seřadit podle data smazání (nejnovější první)
+    deleted_comments.sort(key=lambda x: x['comment'].get('deleted_at', ''), reverse=True)
+    
+    # Generování tabulky
+    comments_html = ''
+    if deleted_comments:
+        for item in deleted_comments:
+            comment = item['comment']
+            comments_html += f'''
+            <tr>
+                <td><a href="/news/{item['news_id']}" class="text-decoration-none">{item['news_title']}</a></td>
+                <td><strong>{comment.get('author', 'Neznámý')}</strong></td>
+                <td><small>{comment.get('created', '')}</small></td>
+                <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{comment.get('text', '')[:100]}...</td>
+                <td><span class="text-danger">{comment.get('delete_reason', 'Nezadán')}</span></td>
+                <td><small>{comment.get('deleted_by', 'Admin')}<br>{comment.get('deleted_at', '')}</small></td>
+                <td>
+                    <form method="POST" action="/news/{item['news_id']}/comment/{comment['id']}/restore" style="display: inline;">
+                        <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('Opravdu chcete obnovit tento komentář?')">
+                            <i class="bi bi-arrow-counterclockwise"></i> Obnovit
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            '''
+    else:
+        comments_html = '<tr><td colspan="7" class="text-center text-muted">Žádné smazané komentáře</td></tr>'
+    
+    content = f'''
+    <div class="container-fluid mt-4">
+        <div class="mb-3">
+            <a href="/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Zpět na dashboard</a>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0"><i class="bi bi-trash"></i> Správa smazaných komentářů</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Zde můžete zobrazit všechny smazané komentáře a případně je obnovit.
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Novinka</th>
+                                <th>Autor</th>
+                                <th>Vytvořeno</th>
+                                <th>Text komentáře</th>
+                                <th>Důvod smazání</th>
+                                <th>Smazal</th>
+                                <th>Akce</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {comments_html}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    '''
+    
+    return render_template_string(BASE_TEMPLATE, title='Smazané komentáře', content=content)
 
 @app.route('/news/archive')
 def news_archive():
