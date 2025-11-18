@@ -672,9 +672,12 @@ def index():
     total_users = len(USERS)
     total_news = len(NEWS)
     
-    # Kompaktní verze novinek pro sidebar
+    # Kompaktní verze novinek pro sidebar - zobrazit pouze 3 nejnovější
     news_cards_html = ""
-    for news in NEWS:
+    display_limit = 3
+    total_news_count = len(NEWS)
+    
+    for idx, news in enumerate(NEWS[:display_limit]):
         featured_class = "border-danger" if news.get('featured', False) else "border-primary"
         comments_count = len(news.get('comments', []))
         star = "⭐ " if news.get('featured', False) else ""
@@ -715,6 +718,16 @@ def index():
                 </div>
                 {admin_buttons}
             </div>
+        </div>
+        '''
+    
+    # Přidání tlačítka pro archiv novinek, pokud je jich víc než 3
+    if total_news_count > display_limit:
+        news_cards_html += f'''
+        <div class="text-center mt-2">
+            <a href="/news/archive" class="btn btn-outline-primary btn-sm w-100">
+                <i class="bi bi-archive"></i> Archiv novinek ({total_news_count - display_limit} starších)
+            </a>
         </div>
         '''
     
@@ -1724,6 +1737,154 @@ def news_detail(news_id):
     '''
     
     return render_template_string(BASE_TEMPLATE, title=news_item['title'], content=content)
+
+@app.route('/news/archive')
+def news_archive():
+    """Archiv všech novinek s filtrováním podle roku a měsíce."""
+    if 'user_id' not in session:
+        flash('Nejste přihlášeni!', 'error')
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+    is_admin = session.get('role') == 'admin'
+    
+    # Získání filtru z URL parametrů
+    year_filter = request.args.get('year', '')
+    month_filter = request.args.get('month', '')
+    
+    # Získání seznamu dostupných roků a měsíců
+    available_dates = {}
+    for news in NEWS:
+        created_date = news['created'][:10]  # YYYY-MM-DD
+        year = created_date[:4]
+        month = created_date[5:7]
+        
+        if year not in available_dates:
+            available_dates[year] = set()
+        available_dates[year].add(month)
+    
+    # Seřazení roků sestupně
+    sorted_years = sorted(available_dates.keys(), reverse=True)
+    
+    # Filtrování novinek
+    filtered_news = NEWS
+    if year_filter:
+        filtered_news = [n for n in filtered_news if n['created'][:4] == year_filter]
+    if month_filter:
+        filtered_news = [n for n in filtered_news if n['created'][5:7] == month_filter]
+    
+    # Vytvoření filtrovacího formuláře
+    month_names = {
+        '01': 'Leden', '02': 'Únor', '03': 'Březen', '04': 'Duben',
+        '05': 'Květen', '06': 'Červen', '07': 'Červenec', '08': 'Srpen',
+        '09': 'Září', '10': 'Říjen', '11': 'Listopad', '12': 'Prosinec'
+    }
+    
+    year_options = '<option value="">Všechny roky</option>'
+    for year in sorted_years:
+        selected = 'selected' if year == year_filter else ''
+        year_options += f'<option value="{year}" {selected}>{year}</option>'
+    
+    month_options = '<option value="">Všechny měsíce</option>'
+    if year_filter and year_filter in available_dates:
+        for month in sorted(available_dates[year_filter]):
+            selected = 'selected' if month == month_filter else ''
+            month_options += f'<option value="{month}" {selected}>{month_names.get(month, month)}</option>'
+    
+    filter_html = f'''
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="GET" class="row g-2">
+                <div class="col-md-4">
+                    <label class="form-label">Rok</label>
+                    <select name="year" class="form-select" onchange="this.form.submit()">
+                        {year_options}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Měsíc</label>
+                    <select name="month" class="form-select" onchange="this.form.submit()">
+                        {month_options}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <a href="/news/archive" class="btn btn-secondary w-100">Zrušit filtr</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    '''
+    
+    # Generování HTML pro novinky
+    news_list_html = ''
+    for news in filtered_news:
+        featured_class = "border-danger" if news.get('featured', False) else "border-primary"
+        star = "⭐ " if news.get('featured', False) else ""
+        read_count = len(news.get('read_by', []))
+        comments_count = len(news.get('comments', []))
+        
+        admin_buttons = ''
+        if is_admin:
+            title_escaped = news['title'].replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n')
+            content_escaped = news['content'].replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n')
+            content_full_escaped = news.get('content_full', news['content']).replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n')
+            image_escaped = news.get('image', '').replace("'", "\\'").replace('"', '\\"')
+            
+            admin_buttons = f'''
+            <div class="btn-group btn-group-sm mt-2" onclick="event.stopPropagation();">
+                <button class="btn btn-outline-primary btn-sm" onclick="editNews({news['id']}, '{title_escaped}', '{content_escaped}', '{content_full_escaped}', '{image_escaped}', {str(news.get('featured', False)).lower()}); event.stopPropagation();">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="deleteNews({news['id']}, '{title_escaped}'); event.stopPropagation();">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+            '''
+        
+        news_list_html += f'''
+        <div class="card {featured_class} mb-3" style="border-left: 4px solid; cursor: pointer;" onclick="window.location.href='/news/{news['id']}'">
+            <div class="card-body">
+                <h5 class="card-title">{star}{news["title"]}</h5>
+                <p class="card-text"><strong>{news["content"]}</strong></p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        <i class="bi bi-person"></i> {news["author"]} | <i class="bi bi-calendar"></i> {news["created"]}
+                    </small>
+                    <div>
+                        {'<span class="badge bg-success me-1"><i class="bi bi-eye"></i> ' + str(read_count) + '</span>' if is_admin and read_count > 0 else ''}
+                        <span class="badge bg-info">💬 {comments_count}</span>
+                    </div>
+                </div>
+                {admin_buttons}
+            </div>
+        </div>
+        '''
+    
+    if not news_list_html:
+        news_list_html = '<div class="alert alert-info">Žádné novinky nenalezeny pro vybrané filtry.</div>'
+    
+    content = f'''
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="mb-3">
+                <a href="/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Zpět na dashboard</a>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header" style="background: linear-gradient(135deg, #2c5aa0 0%, #1e3a72 100%); color: white;">
+                    <h4 class="mb-0"><i class="bi bi-archive"></i> Archiv novinek</h4>
+                    <small>Celkem {len(filtered_news)} novinek{f" (filtrováno)" if year_filter or month_filter else ""}</small>
+                </div>
+            </div>
+            
+            {filter_html}
+            
+            {news_list_html}
+        </div>
+    </div>
+    '''
+    
+    return render_template_string(BASE_TEMPLATE, title='Archiv novinek', content=content)
 
 # Funkce pro perzistentní uložení dat
 def save_users():

@@ -1,5 +1,23 @@
 [
   {
+    "id": 4,
+    "title": "Zkouška",
+    "content": "Novinky Listopad 2025",
+    "content_full": "djiofjvoijdfoigvjdfpogdfg\r\ndfb\r\ndfg\r\nbd\r\ngb\r\ndfgb\r\ndgf\r\nfb\r\ndfg\r\nb\r\nd",
+    "image": "https://australiankava.com.au/wp-content/uploads/2024/01/kava-drink-recipe-how-to-create-the-perfect-kava-beverage_363.png",
+    "author": "Administrator Systému",
+    "created": "2025-11-18 20:14",
+    "featured": false,
+    "read_by": [
+      {
+        "user_id": 1,
+        "full_name": "Administrator Systému",
+        "read_at": "2025-11-18 20:17:11"
+      }
+    ],
+    "comments": []
+  },
+  {
     "id": 3,
     "title": "Zkouška",
     "content": "dccdcdcdcd",
@@ -12,7 +30,7 @@
       {
         "user_id": 1,
         "full_name": "Administrator Systému",
-        "read_at": "2025-11-18 20:11:44"
+        "read_at": "2025-11-18 20:16:47"
       },
       {
         "user_id": 2,
@@ -35,7 +53,7 @@
       {
         "user_id": 1,
         "full_name": "Administrator Systému",
-        "read_at": "2025-11-18 20:09:39"
+        "read_at": "2025-11-18 20:14:53"
       }
     ],
     "comments": []
@@ -54,6 +72,11 @@
         "user_id": 2,
         "full_name": "Jan Novák",
         "read_at": "2025-11-18 20:10:23"
+      },
+      {
+        "user_id": 1,
+        "full_name": "Administrator Systému",
+        "read_at": "2025-11-18 20:17:52"
       }
     ],
     "comments": [
