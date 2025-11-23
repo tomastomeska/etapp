@@ -1,0 +1,45 @@
+[
+  {
+    "id": 1,
+    "username": "admin",
+    "email": "admin@europeantransport.cz",
+    "password": "scrypt:32768:8:1$MLt1DZC4f3K5nCk4$9895c95352bdddfbe91b3565642e07ed13ca4513c74169623c953768789fbd42855a36574edcff00e3750f218eed420ff542c3f329b011fab20a782d6de44758",
+    "full_name": "Administrator Systému",
+    "role": "admin",
+    "avatar": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgZmlsbD0iI2RjMjYyNiIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1zaXplPSI1MCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIj5BPC90ZXh0Pjwvc3ZnPg==",
+    "active": true,
+    "created": "2024-01-01"
+  },
+  {
+    "id": 2,
+    "username": "jan.novak",
+    "email": "user@europeantransport.cz",
+    "password": "scrypt:32768:8:1$0aw3jkVGEFQSFDzD$e35b486c8895e0754ff738c8bf1452be4c612156ab044a323a3e6d42060dc7dab88d76019dcf44b05f24dae354d0740b28586152ca4060ecdab89d118905dd31",
+    "full_name": "Jan Novák",
+    "role": "ridic",
+    "avatar": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgZmlsbD0iIzI1NjNlYiIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1zaXplPSI1MCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIj7FmjwvdGV4dD48L3N2Zz4=",
+    "active": true,
+    "created": "2024-02-15"
+  },
+  {
+    "id": 3,
+    "username": "marie.svobodova",
+    "email": "marie@europeantransport.cz",
+    "password": "scrypt:32768:8:1$DZ6qlpFh0IdZghS1$60e64b584809037fe6d9eb709681e8ccf85035379f050d36634a509c65e5f0f6b7bb9cbd559a2e7ba11be58c6791b3de2fe0f5b9d8e1434e2247d9f0b0fc7415",
+    "full_name": "Marie Svobodová",
+    "role": "administrativa",
+    "avatar": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgZmlsbD0iI2Y5NzMxNiIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1zaXplPSI1MCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIj5BPC90ZXh0Pjwvc3ZnPg==",
+    "active": true,
+    "created": "2024-03-10"
+  },
+  {
+    "id": 4,
+    "username": "Test",
+    "email": "test@seznam.cz",
+    "password": "scrypt:32768:8:1$WKHOlulJYPyAWs6x$d3879ec33143a012b89cd8d7968e5c0c706753fcc3359e9734024d90bc1c91ea41a2b41626c55c7a6d219077ee762d815c6ba5bb45931f5086fc7973fb66ec86",
+    "full_name": "tes3",
+    "role": "administrativa",
+    "avatar": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgZmlsbD0iI2Y5NzMxNiIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1zaXplPSI1MCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIj5BPC90ZXh0Pjwvc3ZnPg==",
+    "active": true
+  }
+]

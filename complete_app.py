@@ -7,7 +7,7 @@ European Transport CZ - Kompletni funkci aplikace
 import os
 import json
 from datetime import datetime
-from flask import Flask, render_template_string, request, redirect, url_for, flash, session, jsonify
+from flask import Flask, render_template_string, request, redirect, url_for, flash, session, jsonify, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
@@ -22,7 +22,7 @@ USERS = {
         'password': generate_password_hash('admin123'),
         'full_name': 'Administrator Systému',
         'role': 'admin',
-        'avatar': 'https://via.placeholder.com/50',
+        'avatar': 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgZmlsbD0iI2RjMjYyNiIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1zaXplPSI1MCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIj5BPC90ZXh0Pjwvc3ZnPg==',
         'active': True,
         'created': '2024-01-01'
     },
@@ -33,7 +33,7 @@ USERS = {
         'password': generate_password_hash('user123'),
         'full_name': 'Jan Novák',
         'role': 'ridic',
-        'avatar': 'https://via.placeholder.com/50',
+        'avatar': 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgZmlsbD0iIzI1NjNlYiIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1zaXplPSI1MCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIj7FmjwvdGV4dD48L3N2Zz4=',
         'active': True,
         'created': '2024-02-15'
     },
@@ -44,7 +44,7 @@ USERS = {
         'password': generate_password_hash('marie123'),
         'full_name': 'Marie Svobodová',
         'role': 'administrativa',
-        'avatar': 'https://via.placeholder.com/50',
+        'avatar': 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgZmlsbD0iI2Y5NzMxNiIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1zaXplPSI1MCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIj5BPC90ZXh0Pjwvc3ZnPg==',
         'active': True,
         'created': '2024-03-10'
     }
@@ -101,10 +101,10 @@ else:
     ]
 
 APPLICATIONS = [
-    {'id': 1, 'name': 'Sprava vozidel', 'icon': '🚛', 'status': 'planned', 'description': 'Modul pro spravu vozoveho parku', 'visible_for_ridic': True},
-    {'id': 2, 'name': 'GPS tracking', 'icon': '📍', 'status': 'planned', 'description': 'Sledovani pozice vozidel', 'visible_for_ridic': True},
-    {'id': 3, 'name': 'Sklady', 'icon': '📦', 'status': 'planned', 'description': 'Sprava skladovych zasob', 'visible_for_ridic': False},
-    {'id': 4, 'name': 'Ucetnictvi', 'icon': '💰', 'status': 'planned', 'description': 'Financni modul', 'visible_for_ridic': False},
+    {'id': 1, 'name': 'Sprava vozidel', 'icon': '🚛', 'status': 'planned', 'description': 'Modul pro spravu vozoveho parku', 'visible_for_ridic': True, 'visible_for_admin': True},
+    {'id': 2, 'name': 'GPS tracking', 'icon': '📍', 'status': 'planned', 'description': 'Sledovani pozice vozidel', 'visible_for_ridic': True, 'visible_for_admin': True},
+    {'id': 3, 'name': 'Sklady', 'icon': '📦', 'status': 'planned', 'description': 'Sprava skladovych zasob', 'visible_for_ridic': False, 'visible_for_admin': True},
+    {'id': 4, 'name': 'Ucetnictvi', 'icon': '💰', 'status': 'planned', 'description': 'Financni modul', 'visible_for_ridic': False, 'visible_for_admin': True},
 ]
 
 BASE_TEMPLATE = '''
@@ -117,49 +117,503 @@ BASE_TEMPLATE = '''
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <style>
-        body { background: #f8f9fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .navbar { background: linear-gradient(135deg, #2c5aa0 0%, #1e3a72 100%) !important; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .card { box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: none; transition: transform 0.2s; }
-        .card:hover { transform: translateY(-2px); }
-        .btn-primary { background: #2c5aa0; border-color: #2c5aa0; }
-        .btn-primary:hover { background: #1e3a72; }
-        .logo { font-weight: bold; color: white !important; font-size: 1.2rem; }
-        .admin-badge { background: linear-gradient(45deg, #dc3545, #fd7e14); color: white; }
-        .user-badge { background: linear-gradient(45deg, #198754, #20c997); color: white; }
-        .news-card { border-left: 4px solid #2c5aa0; }
-        .featured-news { border-left: 4px solid #dc3545; background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%); }
-        .app-tile { 
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); 
-            border: 2px dashed #dee2e6; 
-            transition: all 0.3s;
-            cursor: pointer;
-            min-height: 80px;
+        :root {
+            --primary-blue: #2563eb;
+            --primary-blue-dark: #1e40af;
+            --primary-blue-light: #3b82f6;
+            --accent-blue: #60a5fa;
+            --bg-light: #f8fafc;
+            --bg-white: #ffffff;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
-        .app-tile:hover { border-color: #2c5aa0; background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%); }
-        .app-tile .small { font-size: 0.8rem; margin: 0; }
-        .app-tile h6.small { margin-bottom: 5px; }
-        .message-item { border-left: 3px solid #17a2b8; }
-        .unread { background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%); border-left-color: #dc3545; }
-        .sidebar { background: white; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        .content-section { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
-        .admin-panel { background: linear-gradient(135deg, #fff3cd 0%, #ffffff 100%); border: 1px solid #ffeaa7; }
+        
+        /* Dark mode */
+        [data-theme="dark"] {
+            --primary-blue: #3b82f6;
+            --primary-blue-dark: #2563eb;
+            --primary-blue-light: #60a5fa;
+            --accent-blue: #93c5fd;
+            --bg-light: #0f172a;
+            --bg-white: #1e293b;
+            --text-dark: #f1f5f9;
+            --text-muted: #cbd5e1;
+            --border-color: #334155;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Pink mode */
+        [data-theme="pink"] {
+            --primary-blue: #ec4899;
+            --primary-blue-dark: #db2777;
+            --primary-blue-light: #f472b6;
+            --accent-blue: #f9a8d4;
+            --bg-light: #fdf2f8;
+            --bg-white: #ffffff;
+            --text-dark: #831843;
+            --text-muted: #9f1239;
+            --border-color: #fbcfe8;
+            --shadow-sm: 0 1px 2px 0 rgba(236, 72, 153, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(236, 72, 153, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(236, 72, 153, 0.1);
+        }
+        
+        body { 
+            background: var(--bg-light);
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+        
+        /* Navbar - moderní, plochý design */
+        .navbar { 
+            background: var(--bg-white) !important;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            padding: 1rem 0;
+        }
+        
+        .navbar-brand.logo { 
+            font-weight: 600;
+            color: var(--primary-blue) !important;
+            font-size: 1.25rem;
+            letter-spacing: -0.02em;
+        }
+        
+        .navbar .nav-link {
+            color: var(--text-muted) !important;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        
+        .navbar .nav-link:hover {
+            color: var(--primary-blue) !important;
+        }
+        
+        .navbar-text {
+            color: var(--text-dark) !important;
+            font-weight: 500;
+        }
+        
+        /* Theme switcher */
+        .theme-switcher {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-right: 1rem;
+        }
+        
+        .theme-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            background: transparent;
+        }
+        
+        .theme-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .theme-btn.active {
+            border-width: 3px;
+            box-shadow: 0 0 0 2px var(--bg-light);
+        }
+        
+        .theme-light { color: #2563eb; }\n        .theme-light.active { background: #eff6ff; }
+        .theme-dark { color: #60a5fa; }
+        .theme-dark.active { background: #1e293b; }
+        .theme-pink { color: #ec4899; }
+        .theme-pink.active { background: #fce7f3; }
+        
+        /* Moderní badge design */
+        .admin-badge { 
+            background: var(--primary-blue);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .user-badge { 
+            background: #10b981;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        /* Karty - čistý, minimalistický design */
+        .card { 
+            background: var(--bg-white);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+        
+        .card:hover { 
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        
+        .card-header {
+            background: var(--bg-white);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.25rem 1.5rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        /* Tlačítka - moderní, plochý styl */
+        .btn-primary { 
+            background: var(--primary-blue);
+            border: none;
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .btn-primary:hover { 
+            background: var(--primary-blue-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn-outline-primary {
+            border: 1.5px solid var(--primary-blue);
+            color: var(--primary-blue);
+            background: transparent;
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .btn-outline-primary:hover {
+            background: var(--primary-blue);
+            color: white;
+            transform: translateY(-1px);
+        }
+        
+        /* Aplikační dlaždice - moderní grid design */
+        .app-tile { 
+            background: var(--bg-white);
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .app-tile:hover { 
+            border-color: var(--primary-blue);
+            background: #eff6ff;
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .app-tile h6 {
+            color: var(--text-dark);
+            font-weight: 600;
+        }
+        
+        .app-tile .small {
+            color: var(--text-muted);
+        }
+        
+        /* Novinky - čistý design */
+        .news-card { 
+            border-left: 3px solid var(--primary-blue);
+            background: var(--bg-white);
+        }
+        
+        .featured-news { 
+            border-left: 3px solid var(--primary-blue-light);
+            background: linear-gradient(to right, #eff6ff, var(--bg-white));
+        }
+        
+        /* Zprávy */
+        .message-item { 
+            border-left: 3px solid var(--accent-blue);
+            background: var(--bg-white);
+            transition: all 0.2s;
+        }
+        
+        .message-item:hover {
+            background: var(--bg-light);
+        }
+        
+        .unread { 
+            background: #eff6ff;
+            border-left-color: var(--primary-blue);
+            font-weight: 500;
+        }
+        
+        /* Sidebar a sekce */
+        .sidebar { 
+            background: var(--bg-white);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .content-section { 
+            background: var(--bg-white);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.75rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .admin-panel { 
+            background: linear-gradient(to right, #eff6ff, var(--bg-white));
+            border: 1.5px solid var(--accent-blue);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+        
+        /* Typografie */
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--text-dark);
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+        
+        .text-muted {
+            color: var(--text-muted) !important;
+        }
+        
+        /* Formuláře */
+        .form-control, .form-select {
+            border: 1.5px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.625rem 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        /* Badges */
+        .badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.8rem;
+        }
+        
+        .bg-success {
+            background: #10b981 !important;
+        }
+        
+        .bg-warning {
+            background: #f59e0b !important;
+        }
+        
+        .bg-info {
+            background: var(--accent-blue) !important;
+        }
+        
+        .bg-secondary {
+            background: var(--text-muted) !important;
+        }
+        
+        /* Alert messages */
+        .alert {
+            border: none;
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            border-left: 3px solid;
+        }
+        
+        .alert-success {
+            background: #d1fae5;
+            border-left-color: #10b981;
+            color: #065f46;
+        }
+        
+        .alert-info {
+            background: #dbeafe;
+            border-left-color: var(--primary-blue);
+            color: #1e40af;
+        }
+        
+        .alert-danger {
+            background: #fee2e2;
+            border-left-color: #ef4444;
+            color: #991b1b;
+        }
+        
+        /* Animace */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .card, .app-tile, .content-section {
+            animation: fadeIn 0.4s ease-out;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg-light);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+        
+        /* Admin sidebar buttons */
+        .btn-light:hover {
+            background: var(--bg-light) !important;
+            border-color: var(--primary-blue) !important;
+            transform: translateX(4px);
+        }
+        
+        .btn-light:hover i {
+            transform: scale(1.1);
+        }
+        
+        /* Dark mode specific fixes */
+        [data-theme="dark"] .btn-light {
+            background: var(--bg-white);
+            color: var(--text-dark);
+        }
+        
+        [data-theme="dark"] .navbar {
+            border-bottom-color: var(--border-color);
+        }
+        
+        [data-theme="dark"] .alert-success {
+            background: #134e4a;
+            border-left-color: #10b981;
+            color: #d1fae5;
+        }
+        
+        [data-theme="dark"] .alert-info {
+            background: #1e3a8a;
+            border-left-color: var(--primary-blue);
+            color: #dbeafe;
+        }
+        
+        [data-theme="dark"] .alert-danger {
+            background: #7f1d1d;
+            border-left-color: #ef4444;
+            color: #fee2e2;
+        }
+        
+        [data-theme="dark"] .form-control,
+        [data-theme="dark"] .form-select {
+            background: var(--bg-light);
+            color: var(--text-dark);
+            border-color: var(--border-color);
+        }
+        
+        [data-theme="dark"] .form-control::placeholder {
+            color: var(--text-muted);
+        }
+        
+        [data-theme="dark"] .text-muted {
+            color: var(--text-muted) !important;
+        }
     </style>
+    <script>
+        // Theme switcher logic
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            updateThemeButtons();
+        }
+        
+        function updateThemeButtons() {
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.theme === currentTheme) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+        
+        // Load theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeButtons();
+        });
+    </script>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container-fluid">
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container-fluid px-4">
             <a class="navbar-brand logo" href="/">🚛 European Transport CZ</a>
-            <div class="navbar-nav ms-auto">
+            <div class="navbar-nav ms-auto d-flex align-items-center">
+                <div class="theme-switcher">
+                    <button class="theme-btn theme-light" data-theme="light" onclick="setTheme('light')" title="Světlý režim">
+                        <i class="bi bi-sun-fill"></i>
+                    </button>
+                    <button class="theme-btn theme-dark" data-theme="dark" onclick="setTheme('dark')" title="Tmavý režim">
+                        <i class="bi bi-moon-stars-fill"></i>
+                    </button>
+                    <button class="theme-btn theme-pink" data-theme="pink" onclick="setTheme('pink')" title="Růžový režim">
+                        <i class="bi bi-heart-fill"></i>
+                    </button>
+                </div>
                 {% if session.user_id %}
                     <span class="navbar-text me-3">
-                        👤 {{ session.full_name }}
-                        <span class="badge ms-1 {{ 'admin-badge' if session.role == 'admin' else 'user-badge' }}">
+                        <i class="bi bi-person-circle"></i> {{ session.full_name }}
+                        <span class="badge ms-2 {{ 'admin-badge' if session.role == 'admin' else 'user-badge' }}">
                             {{ {'admin': 'Admin', 'ridic': 'Řidič', 'administrativa': 'Administrativa'}.get(session.role, session.role|title) }}
                         </span>
                     </span>
-                    <a class="nav-link" href="/logout"><i class="bi bi-box-arrow-right"></i> Odhlasit</a>
+                    <a class="nav-link" href="/logout"><i class="bi bi-box-arrow-right"></i> Odhlásit</a>
                 {% else %}
-                    <a class="nav-link" href="/login"><i class="bi bi-box-arrow-in-right"></i> Prihlasit</a>
+                    <a class="nav-link" href="/login"><i class="bi bi-box-arrow-in-right"></i> Přihlásit</a>
                 {% endif %}
             </div>
         </div>
@@ -183,73 +637,6 @@ BASE_TEMPLATE = '''
     {{ content | safe }}
     
     <!-- Modal pro editaci uzivatele -->
-    <div class="modal fade" id="editUserModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Editace uzivatele</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="editUserForm" method="POST" action="/admin/edit_user">
-                    <div class="modal-body">
-                        <input type="hidden" id="editUserEmail" name="user_email">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Jmeno</label>
-                                    <input type="text" class="form-control" id="editFirstName" name="first_name" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Prijmeni</label>
-                                    <input type="text" class="form-control" id="editLastName" name="last_name">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control" id="editEmail" name="email" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Role</label>
-                            <select class="form-control" id="editRole" name="role">
-                                <option value="user">Uzivatel</option>
-                                <option value="admin">Administrator</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Avatar</label>
-                            <select class="form-control" id="editAvatar" name="avatar">
-                                <option value="👤">👤 Uzivatel</option>
-                                <option value="👨‍💼">👨‍💼 Manager</option>
-                                <option value="👩">👩 Zena</option>
-                                <option value="👨‍🔧">👨‍🔧 Technik</option>
-                                <option value="🚛">🚛 Ridic</option>
-                                <option value="📋">📋 Admin</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Status</label>
-                            <select class="form-control" id="editStatus" name="status">
-                                <option value="online">Aktivni</option>
-                                <option value="offline">Neaktivni</option>
-                            </select>
-                        </div>
-                        <hr>
-                        <div class="form-check">
-                            <input type="checkbox" class="form-check-input" id="resetPassword" name="reset_password">
-                            <label class="form-check-label" for="resetPassword">Resetovat heslo na "user123"</label>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zrusit</button>
-                        <button type="submit" class="btn btn-primary">Ulozit zmeny</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
     
     <!-- Modal pro přidání aplikace -->
     <div class="modal fade" id="addAppModal" tabindex="-1">
@@ -259,11 +646,12 @@ BASE_TEMPLATE = '''
                     <h5 class="modal-title">Přidat novou aplikaci</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form method="POST" action="/admin/add_app">
+                <form id="addAppForm" method="POST" action="/admin/add_application">
                     <div class="modal-body">
+                        <input type="hidden" id="addAppFolder" name="folder">
                         <div class="mb-3">
                             <label class="form-label">Název aplikace</label>
-                            <input type="text" class="form-control" name="name" required>
+                            <input type="text" class="form-control" id="addAppName" name="name" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Ikona (emoji)</label>
@@ -286,8 +674,15 @@ BASE_TEMPLATE = '''
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Odkaz/Adresa</label>
-                            <input type="url" class="form-control" name="url" placeholder="https://example.com">
-                            <small class="text-muted">Nechání prázdné = zůstane "Plánováno"</small>
+                            <input type="text" class="form-control" id="addAppUrl" name="url" placeholder="/app_ad/nazev/">
+                            <small class="text-muted">Relativní cesta od root nebo plná URL</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Stav</label>
+                            <select class="form-control" id="addAppStatus" name="status" required>
+                                <option value="available">Dostupná</option>
+                                <option value="planned">Plánovaná</option>
+                            </select>
                         </div>
                         <div class="form-check mb-3">
                             <input type="checkbox" class="form-check-input" name="require_password" id="requirePassword">
@@ -301,9 +696,11 @@ BASE_TEMPLATE = '''
                                 Viditelné pro profil Řidič
                             </label>
                         </div>
-                        <div class="mb-3" id="passwordField" style="display: none;">
-                            <label class="form-label">Heslo pro přístup</label>
-                            <input type="password" class="form-control" name="access_password" placeholder="Heslo pro přístup k aplikaci">
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" name="visible_for_admin" id="visibleForAdmin" checked>
+                            <label class="form-check-label" for="visibleForAdmin">
+                                Viditelné pro profil Administrativa
+                            </label>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -323,7 +720,7 @@ BASE_TEMPLATE = '''
                     <h5 class="modal-title">Editovat aplikaci</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form id="editAppForm" method="POST" action="/admin/edit_app">
+                <form id="editAppForm" method="POST" action="/admin/edit_application">
                     <div class="modal-body">
                         <input type="hidden" id="editAppId" name="app_id">
                         <div class="mb-3">
@@ -351,29 +748,33 @@ BASE_TEMPLATE = '''
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Odkaz/Adresa</label>
-                            <input type="url" class="form-control" id="editAppUrl" name="url" placeholder="https://example.com">
-                            <small class="text-muted">Nechání prázdné = zůstane "Plánováno"</small>
+                            <input type="text" class="form-control" id="editAppUrl" name="url" placeholder="/app_ad/nazev/">
+                            <small class="text-muted">Relativní cesta od root nebo plná URL</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Stav</label>
+                            <select class="form-control" id="editAppStatus" name="status" required>
+                                <option value="available">Dostupná</option>
+                                <option value="planned">Plánovaná</option>
+                            </select>
                         </div>
                         <div class="form-check mb-3">
-                            <input type="checkbox" class="form-check-input" id="editRequirePassword" name="require_password">
-                            <label class="form-check-label" for="editRequirePassword">
+                            <input type="checkbox" class="form-check-input" id="editAppRequirePassword" name="require_password">
+                            <label class="form-check-label" for="editAppRequirePassword">
                                 Vyžadovat heslo před přechodem
                             </label>
                         </div>
                         <div class="form-check mb-3">
-                            <input type="checkbox" class="form-check-input" id="editVisibleForRidic" name="visible_for_ridic">
-                            <label class="form-check-label" for="editVisibleForRidic">
+                            <input type="checkbox" class="form-check-input" id="editAppVisibleForRidic" name="visible_for_ridic">
+                            <label class="form-check-label" for="editAppVisibleForRidic">
                                 Viditelné pro profil Řidič
                             </label>
                         </div>
-                        <div class="mb-3" id="editPasswordField" style="display: none;">
-                            <label class="form-label">Heslo pro přístup</label>
-                            <input type="password" class="form-control" id="editAppPassword" name="access_password" placeholder="Heslo pro přístup k aplikaci">
-                        </div>
-                        <hr>
-                        <div class="text-danger">
-                            <h6>Nebezpečná zóna</h6>
-                            <button type="button" class="btn btn-danger btn-sm" onclick="deleteApp()">Smazat aplikaci</button>
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" id="editAppVisibleForAdmin" name="visible_for_admin">
+                            <label class="form-check-label" for="editAppVisibleForAdmin">
+                                Viditelné pro profil Administrativa
+                            </label>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -412,9 +813,42 @@ BASE_TEMPLATE = '''
                             <label class="form-label">URL obrázku (volitelné)</label>
                             <input type="text" class="form-control" id="editNewsImage" name="image" placeholder="https://example.com/obrazek.jpg">
                         </div>
-                        <div class="form-check">
+                        <div class="form-check mb-2">
                             <input type="checkbox" class="form-check-input" id="editNewsFeatured" name="featured">
                             <label class="form-check-label" for="editNewsFeatured">⭐ Důležitá novinka (zvýrazněná)</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="editNewsPinned" name="pinned">
+                            <label class="form-check-label" for="editNewsPinned">📌 Připnout (zobrazí se i po přečtení)</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zrušit</button>
+                        <button type="submit" class="btn btn-primary">Uložit změny</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal pro editaci zprávy -->
+    <div class="modal fade" id="editMessageModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-pencil"></i> Upravit zprávu</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="editMessageForm" method="POST">
+                    <input type="hidden" id="editMessageId" name="message_id">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Předmět</label>
+                            <input type="text" class="form-control" id="editMessageSubject" name="subject" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Obsah zprávy</label>
+                            <textarea class="form-control" id="editMessageContent" name="content" rows="8" required></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -453,9 +887,13 @@ BASE_TEMPLATE = '''
                             <label class="form-label">URL obrázku (volitelné)</label>
                             <input type="text" class="form-control" name="image" placeholder="https://example.com/obrazek.jpg">
                         </div>
-                        <div class="form-check">
+                        <div class="form-check mb-2">
                             <input type="checkbox" class="form-check-input" name="featured" id="addNewsFeatured">
                             <label class="form-check-label" for="addNewsFeatured">⭐ Důležitá novinka (zvýrazněná)</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="pinned" id="addNewsPinned">
+                            <label class="form-check-label" for="addNewsPinned">📌 Připnout (zobrazí se i po přečtení)</label>
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -478,65 +916,6 @@ BASE_TEMPLATE = '''
             }
         }
         
-        function editUser(email) {
-            // Najdeme uzivatele v datech (toto by v realnem systemu bylo AJAX)
-            const users = {
-                'admin@europeantransport.cz': {'name': 'Administrator Systemu', 'role': 'admin', 'avatar': '👨‍💼', 'status': 'online'},
-                'user@europeantransport.cz': {'name': 'Jan Novak', 'role': 'user', 'avatar': '👤', 'status': 'online'},
-                'marie@europeantransport.cz': {'name': 'Marie Svobodova', 'role': 'user', 'avatar': '👩', 'status': 'offline'}
-            };
-            
-            const user = users[email];
-            if (user) {
-                document.getElementById('editUserEmail').value = email;
-                document.getElementById('editEmail').value = email;
-                const nameParts = user.name.split(' ');
-                document.getElementById('editFirstName').value = nameParts[0] || '';
-                document.getElementById('editLastName').value = nameParts.slice(1).join(' ') || '';
-                document.getElementById('editRole').value = user.role;
-                document.getElementById('editAvatar').value = user.avatar;
-                document.getElementById('editStatus').value = user.status;
-                
-                const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
-                modal.show();
-            }
-        }
-        
-        function toggleUserStatus(email) {
-            if (confirm('Opravdu chcete zmenit status tohoto uzivatele?')) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '/admin/toggle_user_status';
-                
-                const emailInput = document.createElement('input');
-                emailInput.type = 'hidden';
-                emailInput.name = 'user_email';
-                emailInput.value = email;
-                
-                form.appendChild(emailInput);
-                document.body.appendChild(form);
-                form.submit();
-            }
-        }
-        
-        function addUser() {
-            // Vycistime modal
-            document.getElementById('editUserEmail').value = '';
-            document.getElementById('editEmail').value = '';
-            document.getElementById('editFirstName').value = '';
-            document.getElementById('editLastName').value = '';
-            document.getElementById('editRole').value = 'user';
-            document.getElementById('editAvatar').value = '👤';
-            document.getElementById('editStatus').value = 'online';
-            document.getElementById('resetPassword').checked = false;
-            
-            // Zmenime action na pridani
-            document.getElementById('editUserForm').action = '/admin/add_user';
-            document.querySelector('#editUserModal .modal-title').textContent = 'Pridat noveho uzivatele';
-            
-            const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
-            modal.show();
-        }
         
         function showAddAppModal() {
             const modal = new bootstrap.Modal(document.getElementById('addAppModal'));
@@ -575,12 +954,22 @@ BASE_TEMPLATE = '''
                 const password = prompt('Zadejte heslo pro přístup k aplikaci:');
                 if (password) {
                     // Zde by byla kontrola hesla - pro demo jen otevřeme
-                    window.open(url, '_blank');
+                    // Pokud URL začíná lomítkem, je to relativní cesta
+                    if (url.startsWith('/')) {
+                        window.location.href = url;
+                    } else {
+                        window.open(url, '_blank');
+                    }
                 } else {
                     alert('Přístup zrušen');
                 }
             } else {
-                window.open(url, '_blank');
+                // Pokud URL začíná lomítkem, je to relativní cesta
+                if (url.startsWith('/')) {
+                    window.location.href = url;
+                } else {
+                    window.open(url, '_blank');
+                }
             }
         }
         
@@ -630,13 +1019,14 @@ BASE_TEMPLATE = '''
             }
         }
         
-        function editNews(newsId, title, content, contentFull, image, featured) {
+        function editNews(newsId, title, content, contentFull, image, featured, pinned) {
             document.getElementById('editNewsForm').action = '/admin/edit_news/' + newsId;
             document.getElementById('editNewsTitle').value = title;
             document.getElementById('editNewsContent').value = content;
             document.getElementById('editNewsContentFull').value = contentFull || content;
             document.getElementById('editNewsImage').value = image || '';
             document.getElementById('editNewsFeatured').checked = featured;
+            document.getElementById('editNewsPinned').checked = pinned || false;
             
             const modal = new bootstrap.Modal(document.getElementById('editNewsModal'));
             modal.show();
@@ -701,10 +1091,16 @@ def index():
         if user_id not in readers:
             unread_news += 1
     
-    # Kompaktní verze novinek pro sidebar - zobrazit pouze 3 nejnovější
+    # Zobrazit pouze nepřečtené novinky (nebo připnuté) na titulní stránce
+    unread_news_list = []
+    for news in NEWS:
+        readers = [r['user_id'] for r in news.get('read_by', [])]
+        # Zobrazit pokud je nepřečtená NEBO je připnutá (pinned)
+        if user_id not in readers or news.get('pinned', False):
+            unread_news_list.append(news)
+    
     news_cards_html = ""
-    display_limit = 3
-    total_news_count = len(NEWS)
+    total_news_count = len(NEWS)  # Celkový počet pro archiv
     
     def count_all_comments(comments):
         """Rekurzivně spočítá všechny komentáře včetně odpovědí."""
@@ -714,11 +1110,14 @@ def index():
                 count += count_all_comments(comment['replies'])
         return count
     
-    for idx, news in enumerate(NEWS[:display_limit]):
+    for idx, news in enumerate(unread_news_list):
         featured_class = "border-danger" if news.get('featured', False) else "border-primary"
         comments_count = count_all_comments(news.get('comments', []))
         star = "⭐ " if news.get('featured', False) else ""
+        pin = "📌 " if news.get('pinned', False) else ""
         read_count = len(news.get('read_by', []))
+        is_read = user_id in [r['user_id'] for r in news.get('read_by', [])]
+        read_badge = '<span class="badge bg-secondary">Přečteno</span>' if is_read else '<span class="badge bg-success">Nepřečteno</span>'
         
         admin_buttons = ''
         if is_admin:
@@ -730,7 +1129,7 @@ def index():
             
             admin_buttons = f'''
             <div class="btn-group btn-group-sm mt-2" onclick="event.stopPropagation();">
-                <button class="btn btn-outline-primary btn-sm" onclick="editNews({news['id']}, '{title_escaped}', '{content_escaped}', '{content_full_escaped}', '{image_escaped}', {str(news.get('featured', False)).lower()}); event.stopPropagation();">
+                <button class="btn btn-outline-primary btn-sm" onclick="editNews({news['id']}, '{title_escaped}', '{content_escaped}', '{content_full_escaped}', '{image_escaped}', {str(news.get('featured', False)).lower()}, {str(news.get('pinned', False)).lower()}); event.stopPropagation();">
                     <i class="bi bi-pencil"></i>
                 </button>
                 <button class="btn btn-outline-danger btn-sm" onclick="deleteNews({news['id']}, '{title_escaped}'); event.stopPropagation();">
@@ -742,7 +1141,7 @@ def index():
         news_cards_html += f'''
         <div class="card {featured_class} mb-2" style="border-left: 4px solid; cursor: pointer;" onclick="window.location.href='/news/{news['id']}'">
             <div class="card-body p-2">
-                <h6 class="card-title mb-1" style="font-size: 0.9rem;">{star}{news["title"]}</h6>
+                <h6 class="card-title mb-1" style="font-size: 0.9rem;">{pin}{star}{news["title"]} {read_badge if news.get('pinned', False) else ''}</h6>
                 <p class="card-text small mb-2"><strong>{news["content"][:100]}{'...' if len(news['content']) > 100 else ''}</strong></p>
                 <div class="d-flex justify-content-between align-items-center">
                     <small class="text-muted" style="font-size: 0.75rem;">
@@ -758,36 +1157,59 @@ def index():
         </div>
         '''
     
-    # Přidání tlačítka pro archiv novinek, pokud je jich víc než 3
-    if total_news_count > display_limit:
+    # Přidání tlačítka pro archiv přečtených novinek
+    read_news_count = total_news_count - len(unread_news_list)
+    if read_news_count > 0:
         news_cards_html += f'''
         <div class="text-center mt-2">
             <a href="/news/archive" class="btn btn-outline-primary btn-sm w-100">
-                <i class="bi bi-archive"></i> Archiv novinek ({total_news_count - display_limit} starších)
+                <i class="bi bi-archive"></i> Archiv přečtených novinek ({read_news_count})
             </a>
         </div>
         '''
+    
+    if not news_cards_html:
+        news_cards_html = '<p class="text-muted small">Žádné nepřečtené novinky</p>'
     
     # Originální news_html pro kompatibilitu
     news_html = news_cards_html
     
     # Zprávy - zobrazit pouze ty relevantní pro uživatele
-    messages_html = ""
+    # Nejdříve filtrujeme zprávy
+    filtered_messages = []
     for message in MESSAGES:
         # Zkontrolovat jestli je zpráva určená pro tohoto uživatele
         recipient_type = message.get('recipient_type', 'all')
         recipient_user_id = message.get('recipient_user_id')
         
         is_for_user = False
-        if recipient_type == 'all':
+        # Admin vidí všechny zprávy
+        if is_admin:
+            is_for_user = True
+        elif recipient_type == 'all':
             is_for_user = True
         elif recipient_type == 'single' and recipient_user_id == user_id:
             is_for_user = True
         elif recipient_type == user['role']:
             is_for_user = True
         
-        if not is_for_user:
-            continue
+        if is_for_user:
+            filtered_messages.append(message)
+    
+    # Seřadit zprávy podle data vytvoření (nejnovější první)
+    filtered_messages.sort(key=lambda x: x.get('created', ''), reverse=True)
+    
+    # Zobrazit pouze nepřečtené zprávy na dashboardu
+    unread_messages_list = []
+    for message in filtered_messages:
+        is_read = user_id in [r.get('user_id') for r in message.get('read_by', [])]
+        if not is_read:
+            unread_messages_list.append(message)
+    
+    total_messages_count = len(filtered_messages)
+    messages_html = ""
+    
+    for message in unread_messages_list:
         
         # Zkontrolovat jestli už je přečtená
         is_read = user_id in [r.get('user_id') for r in message.get('read_by', [])]
@@ -805,8 +1227,24 @@ def index():
         elif recipient_type == 'administrativa':
             recipient_text = 'Pro administrativu'
         
+        # Admin tlačítka pro editaci a mazání
+        admin_buttons = ''
+        if is_admin:
+            subject_escaped = message.get('subject', '').replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n')
+            content_escaped = message.get('content', '').replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n')
+            admin_buttons = f'''
+            <div class="btn-group btn-group-sm mt-2">
+                <button class="btn btn-outline-primary btn-sm" onclick="editMessage({message['id']}, '{subject_escaped}', '{content_escaped}'); event.stopPropagation();">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="deleteMessage({message['id']}, '{subject_escaped}'); event.stopPropagation();">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+            '''
+        
         messages_html += f'''
-        <div class="card mb-2 message-item {unread_class}">
+        <div class="card mb-2 message-item {unread_class}" style="cursor: pointer;" onclick="window.location.href='/message/{message['id']}'">
             <div class="card-body p-2">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1">
@@ -819,21 +1257,37 @@ def index():
                             <i class="bi bi-clock"></i> {message.get('created', '')[:16]}
                         </small><br>
                         <small class="text-muted"><i class="bi bi-envelope"></i> {recipient_text}</small>
+                        {admin_buttons}
                     </div>
-                    {f'<button class="btn btn-sm btn-outline-success" onclick="markMessageRead({message['id']})"><i class="bi bi-check"></i></button>' if not is_read else '<small class="text-success"><i class="bi bi-check2-circle"></i> Přečteno</small>'}
+                    <div onclick="event.stopPropagation();">
+                        {f'<button class="btn btn-sm btn-outline-success" onclick="markMessageRead({message['id']})"><i class="bi bi-check"></i></button>' if not is_read else '<small class="text-success"><i class="bi bi-check2-circle"></i> Přečteno</small>'}
+                    </div>
                 </div>
             </div>
         </div>
         '''
     
     if not messages_html:
-        messages_html = '<p class="text-muted small">Žádné zprávy</p>'
+        messages_html = '<p class="text-muted small">Žádné nepřečtené zprávy</p>'
+    
+    # Přidání tlačítka pro archiv přečtených zpráv
+    read_messages_count = total_messages_count - len(unread_messages_list)
+    if read_messages_count > 0:
+        messages_html += f'''
+        <div class="text-center mt-2">
+            <a href="/messages/archive" class="btn btn-outline-primary btn-sm w-100">
+                <i class="bi bi-archive"></i> Archiv přečtených zpráv ({read_messages_count})
+            </a>
+        </div>
+        '''
     
     # Aplikace pro levy panel - filtrujeme podle role
     apps_html = ""
     filtered_apps = APPLICATIONS
     if user['role'] == 'ridic':
         filtered_apps = [app for app in APPLICATIONS if app.get('visible_for_ridic', False)]
+    elif user['role'] == 'administrativa':
+        filtered_apps = [app for app in APPLICATIONS if app.get('visible_for_admin', True)]
     
     for app in filtered_apps:
         status_text = "Plánováno" if app.get('status') == 'planned' else "Dostupné"
@@ -848,11 +1302,12 @@ def index():
         context_menu = f"oncontextmenu='editAppContext({app['id']}); return false;'" if is_admin else ""
         
         apps_html += f'''
-        <div class="col-6 mb-2">
-            <div class="card app-tile text-center p-2" onclick="{onclick}" {context_menu} style="{cursor_style}">
-                <div style="font-size: 1.5rem;">{app["icon"]}</div>
-                <h6 class="small">{app["name"]}</h6>
-                <span class="badge {status_class} small">{status_text}</span>
+        <div class="col-xl-2 col-lg-3 col-md-4 col-6">
+            <div class="card app-tile text-center py-3 px-2" onclick="{onclick}" {context_menu} style="{cursor_style} min-height: 160px;">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">{app["icon"]}</div>
+                <h6 style="font-size: 0.85rem; margin-bottom: 0.5rem;">{app["name"]}</h6>
+                <span class="badge {status_class}" style="font-size: 0.7rem;">{status_text}</span>
+                <p class="small text-muted mt-2 mb-0" style="font-size: 0.7rem; line-height: 1.3;">{app.get('description', '')[:40]}{'...' if len(app.get('description', '')) > 40 else ''}</p>
             </div>
         </div>
         '''
@@ -867,9 +1322,28 @@ def index():
             action_btn = "Deaktivovat" if usr.get("active", True) else "Aktivovat"
             status_text = "Aktivní" if usr.get("active", True) else "Neaktivní"
             
+            # Generování avataru podle role
+            avatar_colors = {
+                'admin': '#dc2626',
+                'ridic': '#2563eb', 
+                'administrativa': '#f97316'
+            }
+            avatar_letters = {
+                'admin': 'A',
+                'ridic': 'Ř',
+                'administrativa': 'A'
+            }
+            avatar_color = avatar_colors.get(usr['role'], '#6b7280')
+            avatar_letter = avatar_letters.get(usr['role'], '?')
+            
+            avatar_svg = f'''<svg width="30" height="30" style="border-radius: 50%; vertical-align: middle; margin-right: 8px;">
+                <circle cx="15" cy="15" r="15" fill="{avatar_color}"/>
+                <text x="15" y="21" font-size="15" font-weight="bold" text-anchor="middle" fill="white">{avatar_letter}</text>
+            </svg>'''
+            
             users_html += f'''
             <tr>
-                <td><img src="{usr.get('avatar', 'https://via.placeholder.com/40')}" alt="Avatar" class="rounded-circle me-2" width="30" height="30">{usr["full_name"]}</td>
+                <td>{avatar_svg}{usr["full_name"]}</td>
                 <td>{usr["email"]}</td>
                 <td><span class="badge {role_badge}">{usr["role"]}</span></td>
                 <td><span class="badge bg-{status_badge}">{status_text}</span></td>
@@ -881,6 +1355,19 @@ def index():
             users_html += '</tbody></table></div><button class="btn btn-success" onclick="addUser()">+ Pridat uzivatele</button>'
     
     content = f'''
+    <!-- Firemní aplikace - celá šířka nahoře -->
+    <div class="container-fluid mb-4">
+        <div class="content-section">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="bi bi-grid-3x3-gap"></i> Firemní aplikace</h5>
+                {f'<button class="btn btn-primary btn-sm" onclick="showAddAppModal()"><i class="bi bi-plus"></i> Přidat aplikaci</button>' if is_admin else ''}
+            </div>
+            <div class="row g-3">
+                {apps_html}
+            </div>
+        </div>
+    </div>
+    
     <div class="row">
         <!-- Levý sidebar s kompaktním obsahem -->
         <div class="col-md-4">
@@ -905,29 +1392,29 @@ def index():
                         <li><i class="bi bi-envelope"></i> Nepřečtené zprávy: {unread_messages}</li>
                         <li><i class="bi bi-clock"></i> Online: {datetime.now().strftime("%H:%M")}</li>
                     </ul>
-                    {f'''<div class="mt-2">
-                        <a href="/users" class="btn btn-outline-primary btn-sm w-100 mb-2"><i class="bi bi-people"></i> Správa uživatelů</a>
-                        <a href="/admin/deleted-comments" class="btn btn-outline-danger btn-sm w-100"><i class="bi bi-trash"></i> Smazané komentáře</a>
+                    {f'''<div class="mt-3">
+                        <h6 class="text-muted text-uppercase mb-3" style="font-size: 0.7rem; letter-spacing: 0.05em; font-weight: 600;">Administrace</h6>
+                        <div class="d-grid gap-2">
+                            <a href="/users" class="btn btn-light text-start d-flex align-items-center py-2 px-3" style="border: 1px solid var(--border-color); border-radius: 8px; transition: all 0.2s;">
+                                <i class="bi bi-people" style="font-size: 1.1rem; color: var(--primary-blue); width: 24px;"></i>
+                                <span class="ms-2" style="font-size: 0.9rem; font-weight: 500;">Správa uživatelů</span>
+                            </a>
+                            <a href="/admin/applications" class="btn btn-light text-start d-flex align-items-center py-2 px-3" style="border: 1px solid var(--border-color); border-radius: 8px; transition: all 0.2s;">
+                                <i class="bi bi-grid-3x3-gap" style="font-size: 1.1rem; color: var(--primary-blue); width: 24px;"></i>
+                                <span class="ms-2" style="font-size: 0.9rem; font-weight: 500;">Správa aplikací</span>
+                            </a>
+                            <a href="/admin/deleted-comments" class="btn btn-light text-start d-flex align-items-center py-2 px-3" style="border: 1px solid var(--border-color); border-radius: 8px; transition: all 0.2s;">
+                                <i class="bi bi-trash" style="font-size: 1.1rem; color: #ef4444; width: 24px;"></i>
+                                <span class="ms-2" style="font-size: 0.9rem; font-weight: 500;">Smazané komentáře</span>
+                            </a>
+                        </div>
                     </div>''' if is_admin else ''}
-                </div>
-
-
-                
-                <!-- Firemní aplikace -->
-                <div class="mb-4">
-                    <h6><i class="bi bi-grid-3x3-gap"></i> Firemní aplikace</h6>
-                    <div class="row g-2">
-                        {apps_html}
-                    </div>
-                    {f'<button class="btn btn-primary btn-sm w-100 mt-2" onclick="showAddAppModal()"><i class="bi bi-plus"></i> Přidat aplikaci</button>' if is_admin else ''}
                 </div>
             </div>
         </div>
         
         <!-- Hlavní obsah -->
         <div class="col-md-8">
-            
-
             
             <!-- Editace profilu -->
             <div id="edit-profile" class="content-section" style="display:none;">
@@ -1024,6 +1511,27 @@ def index():
             location.reload();
         }});
     }}
+    
+    function editMessage(id, subject, content) {{
+        document.getElementById('editMessageForm').action = '/admin/edit_message/' + id;
+        document.getElementById('editMessageId').value = id;
+        document.getElementById('editMessageSubject').value = subject;
+        document.getElementById('editMessageContent').value = content;
+        new bootstrap.Modal(document.getElementById('editMessageModal')).show();
+    }}
+    
+    function deleteMessage(id, subject) {{
+        if (confirm('Opravdu chcete smazat zprávu "' + subject + '"?')) {{
+            fetch('/admin/delete_message/' + id, {{
+                method: 'POST',
+                headers: {{
+                    'Content-Type': 'application/json',
+                }}
+            }}).then(() => {{
+                location.reload();
+            }});
+        }}
+    }}
     </script>
     '''
     
@@ -1041,6 +1549,7 @@ def add_news():
     content_full = request.form.get('content_full', content)
     image = request.form.get('image', '')
     featured = 'featured' in request.form
+    pinned = 'pinned' in request.form
     
     new_news = {
         'id': max([n['id'] for n in NEWS], default=0) + 1,
@@ -1051,6 +1560,7 @@ def add_news():
         'author': session.get('full_name', 'Neznámý'),
         'created': datetime.now().strftime('%Y-%m-%d %H:%M'),
         'featured': featured,
+        'pinned': pinned,
         'read_by': [],
         'comments': []
     }
@@ -1301,8 +1811,8 @@ def login():
     <div class="row justify-content-center">
         <div class="col-md-4">
             <div class="card">
-                <div class="card-header text-center" style="background: linear-gradient(135deg, #2c5aa0 0%, #1e3a72 100%); color: white;">
-                    <h3><i class="bi bi-shield-lock"></i> Prihlaseni do systemu</h3>
+                <div class="card-header text-center" style="background: var(--primary-blue-light); color: white; border-radius: 12px 12px 0 0;">
+                    <h3 style="color: white; margin: 0;"><i class="bi bi-shield-lock"></i> Přihlášení do systému</h3>
                 </div>
                 <div class="card-body">
                     <form method="POST">
@@ -1351,6 +1861,319 @@ def api_stats():
         "timestamp": datetime.now().isoformat()
     }
 
+@app.route('/admin/applications')
+def admin_applications():
+    """Administrace aplikací v app_ad složce."""
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    # Načíst aktuální seznam aplikací
+    applications = load_applications()
+    
+    # Automaticky skenovat app_ad složku
+    app_ad_path = os.path.join(os.path.dirname(__file__), 'app_ad')
+    available_apps = []
+    
+    if os.path.exists(app_ad_path):
+        for folder_name in os.listdir(app_ad_path):
+            folder_path = os.path.join(app_ad_path, folder_name)
+            if os.path.isdir(folder_path):
+                # Zkontrolovat jestli už existuje v databázi
+                exists_in_db = any(app.get('folder') == folder_name for app in applications)
+                
+                app_info = {
+                    'folder': folder_name,
+                    'exists': exists_in_db,
+                    'path': f'/app_ad/{folder_name}/'
+                }
+                
+                # Pokusit se načíst README
+                readme_path = os.path.join(folder_path, 'README.md')
+                if os.path.exists(readme_path):
+                    try:
+                        with open(readme_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                            # Vytáhnout první nadpis jako název
+                            lines = content.split('\n')
+                            for line in lines:
+                                if line.startswith('# '):
+                                    app_info['title'] = line.replace('# ', '').split('-')[0].strip()
+                                    break
+                    except:
+                        app_info['title'] = folder_name.title()
+                else:
+                    app_info['title'] = folder_name.title()
+                
+                available_apps.append(app_info)
+    
+    # Generování HTML pro aplikace - moderní kartičkový design
+    apps_cards = ''
+    for app in applications:
+        status_badge = 'bg-success' if app.get('status') == 'available' else 'bg-warning'
+        status_text = 'Dostupná' if app.get('status') == 'available' else 'Plánovaná'
+        status_icon = '✓' if app.get('status') == 'available' else '⏱'
+        
+        folder_badge = ''
+        if app.get('folder'):
+            folder_badge = f'<span class="badge bg-info text-white" style="font-size: 0.7rem;"><i class="bi bi-folder2-open"></i> {app["folder"]}</span>'
+        
+        name_escaped = app['name'].replace("'", "\\'").replace('"', '\\"')
+        desc_escaped = app.get('description', '').replace("'", "\\'").replace('"', '\\"')
+        url_escaped = app.get('url', '').replace("'", "\\'").replace('"', '\\"')
+        
+        # Zkrácení URL pro zobrazení
+        display_url = app.get('url', '-')
+        if len(display_url) > 50:
+            display_url = display_url[:47] + '...'
+        
+        apps_cards += f'''
+        <div class="col-xl-4 col-lg-6 col-md-6 mb-3">
+            <div class="card h-100 shadow-sm border-0" style="transition: all 0.3s; border-left: 4px solid var(--primary-blue) !important;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div class="d-flex align-items-center">
+                            <div style="font-size: 2.5rem; margin-right: 15px;">{app['icon']}</div>
+                            <div>
+                                <h5 class="mb-1" style="font-weight: 600; color: var(--text-dark);">{app['name']}</h5>
+                                <span class="badge {status_badge}" style="font-size: 0.75rem;">{status_icon} {status_text}</span>
+                            </div>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="#" onclick="editApp({app['id']}, '{name_escaped}', '{app['icon']}', '{desc_escaped}', '{url_escaped}', '{app.get('status', 'planned')}', {str(app.get('visible_for_ridic', False)).lower()}, {str(app.get('visible_for_admin', True)).lower()}, {str(app.get('require_password', False)).lower()}); return false;">
+                                        <i class="bi bi-pencil text-primary"></i> Upravit
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item text-danger" href="#" onclick="deleteApp({app['id']}, '{name_escaped}'); return false;">
+                                        <i class="bi bi-trash"></i> Smazat
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <p class="text-muted small mb-3" style="min-height: 40px;">{app.get('description', 'Bez popisu')}</p>
+                    
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        {folder_badge}
+                        <span class="badge {'bg-success' if app.get('visible_for_ridic') else 'bg-secondary'}" style="font-size: 0.7rem;">
+                            <i class="bi bi-{'check-circle' if app.get('visible_for_ridic') else 'x-circle'}"></i> 
+                            {'Pro řidiče' if app.get('visible_for_ridic') else 'Ne pro řidiče'}
+                        </span>
+                        <span class="badge {'bg-info' if app.get('visible_for_admin') else 'bg-secondary'}" style="font-size: 0.7rem;">
+                            <i class="bi bi-{'check-circle' if app.get('visible_for_admin') else 'x-circle'}"></i> 
+                            {'Pro administrativu' if app.get('visible_for_admin') else 'Ne pro administrativu'}
+                        </span>
+                        {'<span class="badge bg-warning text-dark" style="font-size: 0.7rem;"><i class="bi bi-lock"></i> Vyžaduje heslo</span>' if app.get('require_password') else ''}
+                    </div>
+                    
+                    <div class="border-top pt-2">
+                        <small class="text-muted">
+                            <i class="bi bi-link-45deg"></i> 
+                            <code style="font-size: 0.7rem;">{display_url}</code>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        '''
+    
+    # Generování seznamu dostupných aplikací v app_ad - modernější design
+    available_apps_html = ''
+    for app_info in available_apps:
+        if not app_info['exists']:
+            available_apps_html += f'''
+            <div class="card mb-2 border-0 shadow-sm" style="transition: all 0.3s; cursor: pointer;" onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='translateX(0)'">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div style="flex: 1;">
+                            <h6 class="mb-1" style="font-weight: 600; color: var(--primary-blue);">
+                                <i class="bi bi-folder2-open"></i> {app_info['title']}
+                            </h6>
+                            <small class="text-muted d-block mb-1">📁 {app_info['folder']}</small>
+                            <small class="text-info"><code style="font-size: 0.65rem;">{app_info['path']}</code></small>
+                        </div>
+                        <button class="btn btn-sm btn-success" onclick="addAppFromFolder('{app_info['folder']}', '{app_info['title']}', '{app_info['path']}'); event.stopPropagation();" style="white-space: nowrap;">
+                            <i class="bi bi-plus-circle"></i> Přidat
+                        </button>
+                    </div>
+                </div>
+            </div>
+            '''
+    
+    if not available_apps_html:
+        available_apps_html = '<div class="alert alert-info"><i class="bi bi-info-circle"></i> Žádné nové aplikace v app_ad složce</div>'
+    
+    content = f'''
+    <style>
+        .app-admin-card {{
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }}
+        .app-admin-card:hover {{
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(37, 99, 235, 0.15) !important;
+        }}
+        .sidebar-scan {{
+            position: sticky;
+            top: 20px;
+        }}
+    </style>
+    
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-lg-3 col-md-4 mb-4">
+                <div class="card border-0 shadow-sm sidebar-scan">
+                    <div class="card-header bg-gradient" style="background: linear-gradient(135deg, var(--primary-blue), #1e40af); color: white; border: none;">
+                        <h6 class="mb-0"><i class="bi bi-folder2-open"></i> Skenování app_ad</h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted mb-3">Automaticky nalezené aplikace ve složce app_ad/</p>
+                        {available_apps_html}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-9 col-md-8">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h3 style="font-weight: 700; color: var(--text-dark);">
+                            <i class="bi bi-grid-3x3-gap" style="color: var(--primary-blue);"></i> Správa aplikací
+                        </h3>
+                        <p class="text-muted mb-0">Administrace firemních aplikací a modulů</p>
+                    </div>
+                    <div>
+                        <a href="/" class="btn btn-outline-secondary me-2">
+                            <i class="bi bi-arrow-left"></i> Dashboard
+                        </a>
+                        <button class="btn btn-primary shadow-sm" onclick="showAddAppModal()" style="background: var(--primary-blue); border: none;">
+                            <i class="bi bi-plus-circle"></i> Přidat aplikaci
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    {apps_cards}
+                </div>
+                
+                {f'<div class="alert alert-warning"><i class="bi bi-exclamation-triangle"></i> Zatím nejsou přidány žádné aplikace.</div>' if not applications else ''}
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    function editApp(id, name, icon, description, url, status, visibleForRidic, visibleForAdmin, requirePassword) {{
+        document.getElementById('editAppId').value = id;
+        document.getElementById('editAppName').value = name;
+        document.getElementById('editAppIcon').value = icon;
+        document.getElementById('editAppDescription').value = description;
+        document.getElementById('editAppUrl').value = url;
+        document.getElementById('editAppStatus').value = status;
+        document.getElementById('editAppVisibleForRidic').checked = visibleForRidic;
+        document.getElementById('editAppVisibleForAdmin').checked = visibleForAdmin;
+        document.getElementById('editAppRequirePassword').checked = requirePassword;
+        
+        document.getElementById('editAppForm').action = '/admin/edit_application/' + id;
+        new bootstrap.Modal(document.getElementById('editAppModal')).show();
+    }}
+    
+    function deleteApp(id, name) {{
+        if (confirm('Opravdu chcete smazat aplikaci "' + name + '"?')) {{
+            fetch('/admin/delete_application/' + id, {{
+                method: 'POST',
+                headers: {{'Content-Type': 'application/json'}}
+            }}).then(() => location.reload());
+        }}
+    }}
+    
+    function addAppFromFolder(folder, title, path) {{
+        document.getElementById('addAppName').value = title;
+        document.getElementById('addAppUrl').value = path;
+        document.getElementById('addAppFolder').value = folder;
+        document.getElementById('addAppStatus').value = 'available';
+        new bootstrap.Modal(document.getElementById('addAppModal')).show();
+    }}
+    
+    function showAddAppModal() {{
+        document.getElementById('addAppForm').reset();
+        new bootstrap.Modal(document.getElementById('addAppModal')).show();
+    }}
+    </script>
+    '''
+    
+    return render_template_string(BASE_TEMPLATE, title='Správa aplikací', content=content)
+
+@app.route('/admin/add_application', methods=['POST'])
+def admin_add_application():
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    applications = load_applications()
+    
+    # Najít maximální ID
+    max_id = max([app['id'] for app in applications], default=0)
+    
+    new_app = {
+        'id': max_id + 1,
+        'name': request.form.get('name'),
+        'icon': request.form.get('icon'),
+        'description': request.form.get('description', ''),
+        'url': request.form.get('url', ''),
+        'status': request.form.get('status', 'planned'),
+        'require_password': 'require_password' in request.form,
+        'visible_for_ridic': 'visible_for_ridic' in request.form,
+        'visible_for_admin': 'visible_for_admin' in request.form,
+        'folder': request.form.get('folder', ''),
+        'type': 'php' if request.form.get('folder') else 'external'
+    }
+    
+    applications.append(new_app)
+    save_applications(applications)
+    
+    flash('Aplikace byla úspěšně přidána.', 'success')
+    return redirect(url_for('admin_applications'))
+
+@app.route('/admin/edit_application/<int:app_id>', methods=['POST'])
+def admin_edit_application(app_id):
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    applications = load_applications()
+    
+    for app in applications:
+        if app['id'] == app_id:
+            app['name'] = request.form.get('name')
+            app['icon'] = request.form.get('icon')
+            app['description'] = request.form.get('description', '')
+            app['url'] = request.form.get('url', '')
+            app['status'] = request.form.get('status', 'planned')
+            app['require_password'] = 'require_password' in request.form
+            app['visible_for_ridic'] = 'visible_for_ridic' in request.form
+            app['visible_for_admin'] = 'visible_for_admin' in request.form
+            break
+    
+    save_applications(applications)
+    
+    flash('Aplikace byla úspěšně upravena.', 'success')
+    return redirect(url_for('admin_applications'))
+
+@app.route('/admin/delete_application/<int:app_id>', methods=['POST'])
+def admin_delete_application(app_id):
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    app_id = int(app_id)  # Převod z URL parametru na int
+    applications = load_applications()
+    applications = [app for app in applications if app['id'] != app_id]
+    save_applications(applications)
+    
+    return jsonify({'success': True})
+
 @app.route('/users')
 def users():
     if 'user_id' not in session or session.get('role') != 'admin':
@@ -1358,18 +2181,6 @@ def users():
     
     # Parametr pro zobrazení smazaných
     show_deleted = request.args.get('show_deleted') == 'true'
-    
-    # Seznam avatarů
-    avatar_options = [
-        'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-        'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka',
-        'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob',
-        'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice',
-        'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
-        'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma',
-        'https://api.dicebear.com/7.x/bottts/svg?seed=Robot1',
-        'https://api.dicebear.com/7.x/bottts/svg?seed=Robot2',
-    ]
     
     # Vygenerování HTML pro seznam uživatelů
     users_html = ''
@@ -1392,29 +2203,55 @@ def users():
         
         if is_deleted:
             # Tlačítka pro smazané uživatele
+            username_escaped = user['username'].replace("\\", "\\\\").replace("'", "\\'").replace('"', "&quot;")
             action_buttons = f'''
-                <button class="btn btn-success btn-sm" onclick="restoreUser({user['id']}, '{user['username']}')">
+                <button class="btn btn-success btn-sm" onclick="restoreUser({user['id']}, '{username_escaped}')">
                     <i class="bi bi-arrow-counterclockwise"></i> Obnovit
                 </button>
             '''
         else:
             # Tlačítka pro aktivní uživatele
-            message_button = f'<button class="btn btn-outline-info btn-sm" onclick="sendMessageToUser({user['id']}, \\"{user['full_name']}\\")"><i class="bi bi-envelope"></i></button>'
-            delete_button = f'<button class="btn btn-outline-danger btn-sm" onclick="deleteUser({user['id']}, \\"{user['username']}\\")"><i class="bi bi-trash"></i></button>' if user['id'] != session.get('user_id') else '<span class="text-muted small">Vlastní</span>'
+            # Escapování pro JavaScript - nahradit apostrofy a uvozovky
+            full_name_escaped = user['full_name'].replace("\\", "\\\\").replace("'", "\\'").replace('"', "&quot;")
+            username_escaped = user['username'].replace("\\", "\\\\").replace("'", "\\'").replace('"', "&quot;")
+            email_escaped = user['email'].replace("\\", "\\\\").replace("'", "\\'").replace('"', "&quot;")
+            avatar_escaped = user.get('avatar', '').replace("\\", "\\\\").replace("'", "\\'").replace('"', "&quot;")
+            
+            message_button = f'<button class="btn btn-outline-info btn-sm" onclick="sendMessageToUser({user['id']}, \'{full_name_escaped}\')"><i class="bi bi-envelope"></i></button>'
+            delete_button = f'<button class="btn btn-outline-danger btn-sm" onclick="deleteUser({user['id']}, \'{username_escaped}\')"><i class="bi bi-trash"></i></button>' if user['id'] != session.get('user_id') else '<span class="text-muted small">Vlastní</span>'
             
             action_buttons = f'''
                 <div class="btn-group btn-group-sm">
                     {message_button}
-                    <button class="btn btn-outline-primary btn-sm" onclick="editUser({user['id']}, \\'{user['username']}\\', \\'{user['email']}\\', \\'{user['full_name']}\\', \\'{user['role']}\\', \\'{user.get('avatar', '')}\\', {str(user.get('active', True)).lower()})">
+                    <button class="btn btn-outline-primary btn-sm" onclick="editUser({user['id']}, '{username_escaped}', '{email_escaped}', '{full_name_escaped}', '{user['role']}', '{avatar_escaped}', {str(user.get('active', True)).lower()})">
                         <i class="bi bi-pencil"></i>
                     </button>
                     {delete_button}
                 </div>
             '''
         
+        # Generování avataru podle role
+        avatar_colors = {
+            'admin': '#dc2626',
+            'ridic': '#2563eb', 
+            'administrativa': '#f97316'
+        }
+        avatar_letters = {
+            'admin': 'A',
+            'ridic': 'Ř',
+            'administrativa': 'A'
+        }
+        avatar_color = avatar_colors.get(user['role'], '#6b7280')
+        avatar_letter = avatar_letters.get(user['role'], '?')
+        
+        avatar_svg = f'''<svg width="40" height="40" style="border-radius: 50%;">
+            <circle cx="20" cy="20" r="20" fill="{avatar_color}"/>
+            <text x="20" y="28" font-size="20" font-weight="bold" text-anchor="middle" fill="white">{avatar_letter}</text>
+        </svg>'''
+        
         user_row = f'''
         <tr class="{'table-secondary' if is_deleted else ''}">
-            <td><img src="{user.get('avatar', 'https://via.placeholder.com/40')}" alt="Avatar" class="rounded-circle" width="40" height="40"></td>
+            <td>{avatar_svg}</td>
             <td>
                 <strong>{user['full_name']}</strong><br>
                 <small class="text-muted">{user['username']}</small>
@@ -1431,11 +2268,6 @@ def users():
             deleted_users_html += user_row
         else:
             users_html += user_row
-    
-    # Vygenerování HTML pro avatary
-    avatars_html = ''
-    for av in avatar_options:
-        avatars_html += f'<div class="col-3"><img src="{av}" class="img-thumbnail avatar-option" style="cursor: pointer; width: 100%;" onclick="selectAvatar(\'{av}\')" data-avatar="{av}"></div>'
     
     content = f'''
     <div class="container-fluid">
@@ -1618,14 +2450,6 @@ def users():
                                 </div>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Avatar</label>
-                            <div class="row g-2">
-                                {avatars_html}
-                            </div>
-                            <input type="hidden" id="editUserAvatar" name="avatar" value="">
-                            <small class="text-muted">Klikněte na avatar pro výběr</small>
-                        </div>
                         <div class="form-check">
                             <input type="checkbox" class="form-check-input" id="editUserActive" name="active" checked>
                             <label class="form-check-label" for="editUserActive">Účet je aktivní</label>
@@ -1710,14 +2534,6 @@ def users():
     </div>
     
     <script>
-    function selectAvatar(url) {{
-        document.getElementById('editUserAvatar').value = url;
-        document.querySelectorAll('.avatar-option').forEach(img => {{
-            img.style.border = '';
-        }});
-        document.querySelector(`[data-avatar="${{url}}"]`).style.border = '3px solid #007bff';
-    }}
-    
     function editUser(id, username, email, fullName, role, avatar, active) {{
         document.getElementById('editUserForm').action = '/admin/edit_user/' + id;
         document.getElementById('editUsername').value = username;
@@ -1725,16 +2541,6 @@ def users():
         document.getElementById('editFullName').value = fullName;
         document.getElementById('editUserRole').value = role;
         document.getElementById('editUserActive').checked = active;
-        document.getElementById('editUserAvatar').value = avatar;
-        
-        // Zvýraznit vybraný avatar
-        document.querySelectorAll('.avatar-option').forEach(img => {{
-            if (img.getAttribute('data-avatar') === avatar) {{
-                img.style.border = '3px solid #007bff';
-            }} else {{
-                img.style.border = '';
-            }}
-        }});
         
         new bootstrap.Modal(document.getElementById('editUserModal')).show();
     }}
@@ -1809,7 +2615,7 @@ def add_user():
         'password': generate_password_hash(password),
         'full_name': full_name,
         'role': role,
-        'avatar': 'https://via.placeholder.com/50',
+        'avatar': get_avatar_by_role(role),
         'active': True
     }
     
@@ -1829,10 +2635,6 @@ def edit_user(user_id):
     username = request.form.get('username', '').strip()
     email = request.form.get('email', '').strip()
     role = request.form.get('role', 'ridic')
-    full_name = request.form.get('full_name', '').strip()
-    password = request.form.get('password', '').strip()
-    avatar = request.form.get('avatar', '').strip()
-    active = 'active' in request.form
     full_name = request.form.get('full_name', '').strip()
     password = request.form.get('password', '').strip()
     active = 'active' in request.form
@@ -1858,7 +2660,8 @@ def edit_user(user_id):
         'email': email,
         'full_name': full_name,
         'role': role,
-        'active': active
+        'active': active,
+        'avatar': get_avatar_by_role(role)
     })
     
     # Změna hesla pokud je zadáno
@@ -1956,6 +2759,117 @@ def send_message():
     
     return redirect(url_for('users'))
 
+@app.route('/message/<int:message_id>')
+def message_detail(message_id):
+    """Detail zprávy."""
+    if 'user_id' not in session:
+        flash('Nejste přihlášeni!', 'error')
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+    is_admin = session.get('role') == 'admin'
+    
+    # Najít zprávu
+    message = None
+    for msg in MESSAGES:
+        if msg['id'] == message_id:
+            message = msg
+            break
+    
+    if not message:
+        flash('Zpráva nebyla nalezena.', 'error')
+        return redirect(url_for('index'))
+    
+    # Automaticky označit jako přečtenou
+    if user_id not in [r.get('user_id') for r in message.get('read_by', [])]:
+        message['read_by'].append({
+            'user_id': user_id,
+            'read_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        })
+        save_messages()
+    
+    # Určit příjemce
+    recipient_type = message.get('recipient_type', 'all')
+    recipient_text = ''
+    if recipient_type == 'all':
+        recipient_text = 'Pro všechny'
+    elif recipient_type == 'single':
+        recipient_user_id = message.get('recipient_user_id')
+        recipient_user = USERS.get(recipient_user_id)
+        recipient_text = f'Pouze pro: {recipient_user["full_name"]}' if recipient_user else 'Pouze pro konkrétního uživatele'
+    elif recipient_type == 'ridic':
+        recipient_text = 'Pro řidiče'
+    elif recipient_type == 'administrativa':
+        recipient_text = 'Pro administrativu'
+    
+    # Admin tlačítka
+    admin_buttons = ''
+    if is_admin:
+        subject_escaped = message.get('subject', '').replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n')
+        content_escaped = message.get('content', '').replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n')
+        admin_buttons = f'''
+        <div class="btn-group mt-3">
+            <button class="btn btn-outline-primary" onclick="editMessage({message['id']}, '{subject_escaped}', '{content_escaped}')">
+                <i class="bi bi-pencil"></i> Upravit
+            </button>
+            <button class="btn btn-outline-danger" onclick="deleteMessage({message['id']}, '{subject_escaped}')">
+                <i class="bi bi-trash"></i> Smazat
+            </button>
+        </div>
+        '''
+    
+    content = f'''
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="mb-3">
+                <a href="/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Zpět na dashboard</a>
+            </div>
+            
+            <div class="card">
+                <div class="card-header" style="background: linear-gradient(135deg, #2c5aa0 0%, #1e3a72 100%); color: white;">
+                    <h4 class="mb-0"><i class="bi bi-envelope-open"></i> {message.get('subject', 'Bez předmětu')}</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="bi bi-person"></i> Od: <strong>{message.get('from_name', 'Systém')}</strong> | 
+                            <i class="bi bi-clock"></i> {message.get('created', '')} |
+                            <i class="bi bi-envelope"></i> {recipient_text}
+                        </small>
+                    </div>
+                    <hr>
+                    <div style="white-space: pre-wrap;">{message.get('content', '')}</div>
+                    {admin_buttons}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+    function editMessage(id, subject, content) {{
+        document.getElementById('editMessageId').value = id;
+        document.getElementById('editMessageSubject').value = subject;
+        document.getElementById('editMessageContent').value = content;
+        new bootstrap.Modal(document.getElementById('editMessageModal')).show();
+    }}
+    
+    function deleteMessage(id, subject) {{
+        if (confirm('Opravdu chcete smazat zprávu "' + subject + '"?')) {{
+            fetch('/admin/delete_message/' + id, {{
+                method: 'POST',
+                headers: {{
+                    'Content-Type': 'application/json',
+                }}
+            }}).then(() => {{
+                window.location.href = '/';
+            }});
+        }}
+    }}
+    </script>
+    '''
+    
+    return render_template_string(BASE_TEMPLATE, title='Detail zprávy', content=content)
+
 @app.route('/message/<int:message_id>/mark_read', methods=['POST'])
 def mark_message_read(message_id):
     if 'user_id' not in session:
@@ -1976,6 +2890,42 @@ def mark_message_read(message_id):
     
     return redirect(url_for('index'))
 
+@app.route('/admin/edit_message/<int:message_id>', methods=['POST'])
+def edit_message(message_id):
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    subject = request.form.get('subject', '').strip()
+    content = request.form.get('content', '').strip()
+    
+    if not subject or not content:
+        flash('Předmět a obsah zprávy jsou povinné.', 'error')
+        return redirect(url_for('message_detail', message_id=message_id))
+    
+    # Najít zprávu
+    for msg in MESSAGES:
+        if msg['id'] == message_id:
+            msg['subject'] = subject
+            msg['content'] = content
+            save_messages()
+            flash('Zpráva byla úspěšně upravena.', 'success')
+            break
+    
+    return redirect(url_for('message_detail', message_id=message_id))
+
+@app.route('/admin/delete_message/<int:message_id>', methods=['POST'])
+def delete_message(message_id):
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    # Najít a smazat zprávu
+    global MESSAGES
+    MESSAGES = [msg for msg in MESSAGES if msg['id'] != message_id]
+    save_messages()
+    flash('Zpráva byla úspěšně smazána.', 'success')
+    
+    return redirect(url_for('index'))
+
 @app.route('/admin/edit_news/<int:news_id>', methods=['POST'])
 def edit_news(news_id):
     if 'user_id' not in session or session.get('role') != 'admin':
@@ -1986,6 +2936,7 @@ def edit_news(news_id):
     content_full = request.form.get('content_full', content).strip()
     image = request.form.get('image', '').strip()
     featured = 'featured' in request.form
+    pinned = 'pinned' in request.form
     
     if not title or not content:
         flash('Název a obsah novinky jsou povinné.', 'error')
@@ -2004,7 +2955,8 @@ def edit_news(news_id):
             'content': content,
             'content_full': content_full,
             'image': image,
-            'featured': featured
+            'featured': featured,
+            'pinned': pinned
         })
         save_news()  # Uloží změny do JSON
         flash('Novinka byla úspěšně aktualizována.', 'success')
@@ -2767,6 +3719,197 @@ def news_archive():
     
     return render_template_string(BASE_TEMPLATE, title='Archiv novinek', content=content)
 
+@app.route('/messages/archive')
+def messages_archive():
+    """Archiv všech zpráv s filtrováním podle roku a měsíce."""
+    if 'user_id' not in session:
+        flash('Nejste přihlášeni!', 'error')
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+    user = USERS.get(user_id)
+    is_admin = session.get('role') == 'admin'
+    
+    # Získání filtru z URL parametrů
+    year_filter = request.args.get('year', '')
+    month_filter = request.args.get('month', '')
+    
+    # Nejdříve filtrujeme zprávy podle příjemce
+    filtered_messages = []
+    for message in MESSAGES:
+        recipient_type = message.get('recipient_type', 'all')
+        recipient_user_id = message.get('recipient_user_id')
+        
+        is_for_user = False
+        if is_admin:
+            is_for_user = True
+        elif recipient_type == 'all':
+            is_for_user = True
+        elif recipient_type == 'single' and recipient_user_id == user_id:
+            is_for_user = True
+        elif recipient_type == user['role']:
+            is_for_user = True
+        
+        if is_for_user:
+            filtered_messages.append(message)
+    
+    # Seřadit zprávy podle data vytvoření (nejnovější první)
+    filtered_messages.sort(key=lambda x: x.get('created', ''), reverse=True)
+    
+    # Získání seznamu dostupných roků a měsíců
+    available_dates = {}
+    for message in filtered_messages:
+        created_date = message['created'][:10]  # YYYY-MM-DD
+        year = created_date[:4]
+        month = created_date[5:7]
+        
+        if year not in available_dates:
+            available_dates[year] = set()
+        available_dates[year].add(month)
+    
+    # Seřazení roků sestupně
+    sorted_years = sorted(available_dates.keys(), reverse=True)
+    
+    # Filtrování zpráv podle data
+    if year_filter:
+        filtered_messages = [m for m in filtered_messages if m['created'][:4] == year_filter]
+    if month_filter:
+        filtered_messages = [m for m in filtered_messages if m['created'][5:7] == month_filter]
+    
+    # Vytvoření filtrovacího formuláře
+    month_names = {
+        '01': 'Leden', '02': 'Únor', '03': 'Březen', '04': 'Duben',
+        '05': 'Květen', '06': 'Červen', '07': 'Červenec', '08': 'Srpen',
+        '09': 'Září', '10': 'Říjen', '11': 'Listopad', '12': 'Prosinec'
+    }
+    
+    year_options = '<option value="">Všechny roky</option>'
+    for year in sorted_years:
+        selected = 'selected' if year == year_filter else ''
+        year_options += f'<option value="{year}" {selected}>{year}</option>'
+    
+    month_options = '<option value="">Všechny měsíce</option>'
+    if year_filter and year_filter in available_dates:
+        for month in sorted(available_dates[year_filter]):
+            selected = 'selected' if month == month_filter else ''
+            month_options += f'<option value="{month}" {selected}>{month_names.get(month, month)}</option>'
+    
+    filter_html = f'''
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="GET" class="row g-2">
+                <div class="col-md-4">
+                    <label class="form-label">Rok</label>
+                    <select name="year" class="form-select" onchange="this.form.submit()">
+                        {year_options}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Měsíc</label>
+                    <select name="month" class="form-select" onchange="this.form.submit()">
+                        {month_options}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <a href="/messages/archive" class="btn btn-secondary w-100">Zrušit filtr</a>
+                </div>
+            </form>
+        </div>
+    </div>
+    '''
+    
+    # Generování HTML pro zprávy
+    messages_list_html = ''
+    for message in filtered_messages:
+        # Zkontrolovat jestli už je přečtená
+        is_read = user_id in [r.get('user_id') for r in message.get('read_by', [])]
+        unread_badge = '' if is_read else '<span class="badge bg-danger">Nová</span>'
+        
+        # Určit příjemce pro zobrazení
+        recipient_type = message.get('recipient_type', 'all')
+        recipient_text = ''
+        if recipient_type == 'all':
+            recipient_text = 'Pro všechny'
+        elif recipient_type == 'single':
+            recipient_text = 'Pouze pro vás'
+        elif recipient_type == 'ridic':
+            recipient_text = 'Pro řidiče'
+        elif recipient_type == 'administrativa':
+            recipient_text = 'Pro administrativu'
+        
+        messages_list_html += f'''
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-envelope"></i> {message.get('subject', 'Bez předmětu')} {unread_badge}
+                    </h5>
+                    {f'<button class="btn btn-sm btn-outline-success" onclick="markMessageRead({message['id']})"><i class="bi bi-check"></i> Označit jako přečtené</button>' if not is_read else '<small class="text-success"><i class="bi bi-check2-circle"></i> Přečteno</small>'}
+                </div>
+                <p class="card-text">{message.get('content', '')}</p>
+                <div class="d-flex justify-content-between">
+                    <small class="text-muted">
+                        <i class="bi bi-person"></i> {message.get('from_name', 'Systém')} | 
+                        <i class="bi bi-clock"></i> {message.get('created', '')}
+                    </small>
+                    <small class="text-muted">
+                        <i class="bi bi-envelope"></i> {recipient_text}
+                    </small>
+                </div>
+            </div>
+        </div>
+        '''
+    
+    if not messages_list_html:
+        messages_list_html = '<div class="alert alert-info">Žádné zprávy nenalezeny pro vybrané filtry.</div>'
+    
+    content = f'''
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="mb-3">
+                <a href="/" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left"></i> Zpět na dashboard</a>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header" style="background: linear-gradient(135deg, #2c5aa0 0%, #1e3a72 100%); color: white;">
+                    <h4 class="mb-0"><i class="bi bi-archive"></i> Archiv zpráv</h4>
+                    <small>Celkem {len(filtered_messages)} zpráv{f" (filtrováno)" if year_filter or month_filter else ""}</small>
+                </div>
+            </div>
+            
+            {filter_html}
+            
+            {messages_list_html}
+        </div>
+    </div>
+    
+    <script>
+    function markMessageRead(messageId) {{
+        fetch('/message/' + messageId + '/mark_read', {{
+            method: 'POST',
+            headers: {{
+                'Content-Type': 'application/json',
+            }}
+        }}).then(() => {{
+            location.reload();
+        }});
+    }}
+    </script>
+    '''
+    
+    return render_template_string(BASE_TEMPLATE, title='Archiv zpráv', content=content)
+
+# Funkce pro generování avatarů podle role
+def get_avatar_by_role(role):
+    """Vygeneruje SVG avatar podle role uživatele."""
+    # Base64 encoded SVG avatary pro lepší kompatibilitu
+    avatars = {
+        'admin': 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgZmlsbD0iI2RjMjYyNiIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1zaXplPSI1MCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIj5BPC90ZXh0Pjwvc3ZnPg==',
+        'ridic': 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgZmlsbD0iIzI1NjNlYiIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1zaXplPSI1MCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIj7FmjwvdGV4dD48L3N2Zz4=',
+        'administrativa': 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgZmlsbD0iI2Y5NzMxNiIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1zaXplPSI1MCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIj5BPC90ZXh0Pjwvc3ZnPg=='
+    }
+    return avatars.get(role, avatars['ridic'])
+
 # Funkce pro perzistentní uložení dat
 def save_users():
     """Uloží uživatele do JSON souboru."""
@@ -2788,6 +3931,21 @@ def save_messages():
     """Uloží zprávy do JSON souboru."""
     with open('data_messages.json', 'w', encoding='utf-8') as f:
         json.dump(MESSAGES, f, ensure_ascii=False, indent=2)
+
+# Helper funkce pro práci s aplikacemi
+def load_applications():
+    """Načte aplikace ze souboru."""
+    if os.path.exists('data_applications.json'):
+        with open('data_applications.json', 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return []
+
+def save_applications(applications):
+    """Uloží aplikace do souboru a aktualizuje globální proměnnou."""
+    global APPLICATIONS
+    with open('data_applications.json', 'w', encoding='utf-8') as f:
+        json.dump(applications, f, ensure_ascii=False, indent=2)
+    APPLICATIONS[:] = applications
 
 def load_data():
     """Načte data ze souborů při startu aplikace."""
@@ -2829,6 +3987,173 @@ def load_data():
                 print(f"✅ Načteno {len(MESSAGES)} zpráv z data_messages.json")
         except Exception as e:
             print(f"⚠️ Chyba při načítání zpráv: {e}")
+
+# Route pro přístup k aplikacím v app_ad složce
+@app.route('/app_ad/<path:filename>')
+def app_ad_files(filename):
+    """Zpřístupní soubory z app_ad složky."""
+    import os
+    app_ad_path = os.path.join(os.path.dirname(__file__), 'app_ad')
+    return send_from_directory(app_ad_path, filename)
+
+@app.route('/aquany-info')
+def aquany_info():
+    """Informační stránka pro spuštění Aquany."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    content = '''
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4><i class="bi bi-box"></i> Aquany - Systém správy dopravních zakázek</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> <strong>PHP Aplikace</strong><br>
+                            Aquany je PHP aplikace, která vyžaduje Apache/WAMP server pro svůj běh.
+                        </div>
+                        
+                        <h5>Možnosti spuštění:</h5>
+                        
+                        <div class="accordion" id="aquanyAccordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#option1">
+                                        <strong>1. Přes WAMP Server (doporučeno)</strong>
+                                    </button>
+                                </h2>
+                                <div id="option1" class="accordion-collapse collapse show" data-bs-parent="#aquanyAccordion">
+                                    <div class="accordion-body">
+                                        <ol>
+                                            <li>Spusťte WAMP Server (ikonka v systémové liště)</li>
+                                            <li>Počkejte, až ikona zezelená</li>
+                                            <li>Klikněte na tlačítko níže</li>
+                                        </ol>
+                                        <a href="http://localhost/euapp/app_ad/aquany/" target="_blank" class="btn btn-success">
+                                            <i class="bi bi-box-arrow-up-right"></i> Otevřít Aquany přes WAMP
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#option2">
+                                        <strong>2. Přes PHP Built-in Server</strong>
+                                    </button>
+                                </h2>
+                                <div id="option2" class="accordion-collapse collapse" data-bs-parent="#aquanyAccordion">
+                                    <div class="accordion-body">
+                                        <p>Spusťte následující příkaz v terminálu:</p>
+                                        <div class="bg-dark text-white p-3 rounded">
+                                            <code>cd c:\\wamp64\\www\\euapp\\app_ad\\aquany</code><br>
+                                            <code>php -S localhost:8080</code>
+                                        </div>
+                                        <p class="mt-2">Poté otevřete:</p>
+                                        <a href="http://localhost:8080" target="_blank" class="btn btn-primary">
+                                            <i class="bi bi-box-arrow-up-right"></i> Otevřít Aquany (port 8080)
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#option3">
+                                        <strong>3. Automatické spuštění (experimentální)</strong>
+                                    </button>
+                                </h2>
+                                <div id="option3" class="accordion-collapse collapse" data-bs-parent="#aquanyAccordion">
+                                    <div class="accordion-body">
+                                        <p>Klikněte na tlačítko pro automatické spuštění PHP serveru:</p>
+                                        <form action="/start-aquany" method="POST">
+                                            <button type="submit" class="btn btn-warning">
+                                                <i class="bi bi-play-fill"></i> Spustit Aquany automaticky
+                                            </button>
+                                        </form>
+                                        <small class="text-muted">Spustí PHP server na portu 8080 a otevře aplikaci</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <a href="/" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Zpět na dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    '''
+    return render_template_string(BASE_TEMPLATE, title='Aquany - Spuštění', content=content)
+
+@app.route('/start-aquany', methods=['POST'])
+def start_aquany():
+    """Automaticky spustí PHP server pro Aquany."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    import subprocess
+    import os
+    
+    aquany_path = os.path.join(os.path.dirname(__file__), 'app_ad', 'aquany')
+    
+    try:
+        # Pokusíme se najít PHP v WAMP
+        php_paths = [
+            r'c:\wamp64\bin\php\php8.3.0\php.exe',
+            r'c:\wamp64\bin\php\php8.2.13\php.exe',
+            r'c:\wamp64\bin\php\php8.1.0\php.exe',
+            r'php'  # Pokud je PHP v PATH
+        ]
+        
+        php_exe = None
+        for path in php_paths:
+            try:
+                if os.path.exists(path) or path == 'php':
+                    # Test, zda PHP funguje
+                    test = subprocess.run([path, '--version'], capture_output=True, timeout=2)
+                    if test.returncode == 0:
+                        php_exe = path
+                        break
+            except:
+                continue
+        
+        if not php_exe:
+            flash('PHP nebyl nalezen v systému. Spusťte WAMP server nebo nainstalujte PHP.', 'error')
+            return redirect(url_for('aquany_info'))
+        
+        # Spustíme PHP server na pozadí
+        subprocess.Popen(
+            [php_exe, '-S', 'localhost:8080'],
+            cwd=aquany_path,
+            creationflags=subprocess.CREATE_NEW_CONSOLE if os.name == 'nt' else 0
+        )
+        
+        flash('PHP server byl spuštěn na portu 8080. Otevírám Aquany...', 'success')
+        
+        # Přesměrujeme na Aquany
+        return '''
+        <html>
+        <head>
+            <meta http-equiv="refresh" content="2;url=http://localhost:8080" />
+        </head>
+        <body>
+            <p>Spouštím Aquany... Budete přesměrováni za 2 sekundy.</p>
+            <p>Pokud se stránka neotevře automaticky, <a href="http://localhost:8080">klikněte zde</a>.</p>
+        </body>
+        </html>
+        '''
+        
+    except Exception as e:
+        flash(f'Chyba při spouštění PHP serveru: {str(e)}', 'error')
+        return redirect(url_for('aquany_info'))
 
 if __name__ == '__main__':
     # Načtení dat při startu
