@@ -4,7 +4,7 @@
     "username": "admin",
     "email": "admin@europeantransport.cz",
     "password": "scrypt:32768:8:1$MLt1DZC4f3K5nCk4$9895c95352bdddfbe91b3565642e07ed13ca4513c74169623c953768789fbd42855a36574edcff00e3750f218eed420ff542c3f329b011fab20a782d6de44758",
-    "full_name": "Administrator Systému",
+    "full_name": "Administrátor systému",
     "role": "admin",
     "avatar": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgZmlsbD0iI2RjMjYyNiIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1zaXplPSI1MCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIj5BPC90ZXh0Pjwvc3ZnPg==",
     "active": true,

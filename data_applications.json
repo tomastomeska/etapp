@@ -64,5 +64,18 @@
     "visible_for_ridic": false,
     "folder": "",
     "type": "external"
+  },
+  {
+    "id": 7,
+    "name": "Dovolená",
+    "icon": "🏖️",
+    "description": "Správa dovolené a pracovního volna - žádosti, schvalování, kalendář",
+    "url": "http://localhost:5004/app_ad/dovolena/index.php",
+    "status": "available",
+    "require_password": false,
+    "visible_for_ridic": true,
+    "visible_for_admin": true,
+    "folder": "dovolena",
+    "type": "php"
   }
 ]

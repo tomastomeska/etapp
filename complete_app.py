@@ -6,6 +6,7 @@ European Transport CZ - Kompletni funkci aplikace
 
 import os
 import json
+import base64
 from datetime import datetime
 from flask import Flask, render_template_string, request, redirect, url_for, flash, session, jsonify, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -20,7 +21,7 @@ USERS = {
         'username': 'admin',
         'email': 'admin@europeantransport.cz',
         'password': generate_password_hash('admin123'),
-        'full_name': 'Administrator Systému',
+        'full_name': 'Administrátor systému',
         'role': 'admin',
         'avatar': 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgZmlsbD0iI2RjMjYyNiIvPjx0ZXh0IHg9IjUwIiB5PSI3MCIgZm9udC1zaXplPSI1MCIgZm9udC13ZWlnaHQ9ImJvbGQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIj5BPC90ZXh0Pjwvc3ZnPg==',
         'active': True,
@@ -105,6 +106,7 @@ APPLICATIONS = [
     {'id': 2, 'name': 'GPS tracking', 'icon': '📍', 'status': 'planned', 'description': 'Sledovani pozice vozidel', 'visible_for_ridic': True, 'visible_for_admin': True},
     {'id': 3, 'name': 'Sklady', 'icon': '📦', 'status': 'planned', 'description': 'Sprava skladovych zasob', 'visible_for_ridic': False, 'visible_for_admin': True},
     {'id': 4, 'name': 'Ucetnictvi', 'icon': '💰', 'status': 'planned', 'description': 'Financni modul', 'visible_for_ridic': False, 'visible_for_admin': True},
+    {'id': 5, 'name': 'Dovolená', 'icon': '🏖️', 'status': 'active', 'description': 'Správa dovolené a pracovního volna', 'visible_for_ridic': True, 'visible_for_admin': True, 'url': '/app_ad/dovolena/index.php'},
 ]
 
 BASE_TEMPLATE = '''
@@ -1860,6 +1862,27 @@ def api_stats():
         "applications": len(APPLICATIONS),
         "timestamp": datetime.now().isoformat()
     }
+
+@app.route('/api/current-user')
+def api_current_user():
+    """API endpoint pro získání informací o přihlášeném uživateli."""
+    if 'user_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    user_id = session.get('user_id')
+    if user_id in USERS:
+        user = USERS[user_id]
+        return jsonify({
+            'id': user['id'],
+            'username': user['username'],
+            'email': user['email'],
+            'full_name': user['full_name'],
+            'role': user['role'],
+            'avatar': user['avatar'],
+            'active': user['active']
+        })
+    
+    return jsonify({'error': 'User not found'}), 404
 
 @app.route('/admin/applications')
 def admin_applications():
@@ -3989,9 +4012,72 @@ def load_data():
             print(f"⚠️ Chyba při načítání zpráv: {e}")
 
 # Route pro přístup k aplikacím v app_ad složce
-@app.route('/app_ad/<path:filename>')
+@app.route('/app_ad/<path:filename>', methods=['GET', 'POST'])
 def app_ad_files(filename):
-    """Zpřístupní soubory z app_ad složky."""
+    """Proxy pro PHP aplikace v app_ad složce - předává session data."""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # Pro PHP soubory vytvoříme proxy s předáním user dat
+    if filename.endswith('.php'):
+        import urllib.request
+        import urllib.parse
+        
+        # URL na Apache server
+        apache_url = f'http://localhost/euapp/app_ad/{filename}'
+        
+        # Připravit query string
+        query_string = request.query_string.decode('utf-8')
+        if query_string:
+            apache_url += '?' + query_string
+        
+        # Získat user data
+        user_id = session.get('user_id')
+        user = USERS.get(user_id)
+        
+        if not user:
+            return redirect(url_for('login'))
+        
+        # Připravit headers
+        headers = {
+            'X-User-ID': str(user['id']),
+            'X-User-Email': user['email'],
+            'X-User-Name': base64.b64encode(user['full_name'].encode('utf-8')).decode('ascii'),
+            'X-User-Role': user['role'],
+            'X-User-Username': user['username']
+        }
+        
+        try:
+            # POST data
+            if request.method == 'POST':
+                # Převést ImmutableMultiDict na dict pro urlencode
+                form_data = {}
+                for key in request.form:
+                    # Pokud je více hodnot se stejným klíčem, vezmi všechny
+                    values = request.form.getlist(key)
+                    if len(values) == 1:
+                        form_data[key] = values[0]
+                    else:
+                        form_data[key] = values
+                
+                post_data = urllib.parse.urlencode(form_data).encode('utf-8')
+                headers['Content-Type'] = 'application/x-www-form-urlencoded'
+                req = urllib.request.Request(apache_url, data=post_data, headers=headers, method='POST')
+            else:
+                req = urllib.request.Request(apache_url, headers=headers, method='GET')
+            
+            # Poslat request
+            with urllib.request.urlopen(req, timeout=30) as response:
+                content = response.read()
+                content_type = response.headers.get('Content-Type', 'text/html')
+                
+                return content, 200, {'Content-Type': content_type}
+                
+        except Exception as e:
+            flash(f'Chyba při načítání aplikace: {str(e)}', 'error')
+            return redirect(url_for('dashboard'))
+    
+    # Pro ostatní soubory (CSS, JS, obrázky) jen pošli
     import os
     app_ad_path = os.path.join(os.path.dirname(__file__), 'app_ad')
     return send_from_directory(app_ad_path, filename)
