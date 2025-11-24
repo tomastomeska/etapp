@@ -380,6 +380,11 @@ function isHoliday($date, $holidays) {
                     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newVacationModal">
                         <i class="bi bi-plus-lg"></i> Nová žádost
                     </button>
+                    <?php if ($isAdmin): ?>
+                        <a href="print_calendar.php?year=<?= $currentYear ?>&month=<?= $currentMonth ?>" target="_blank" class="btn btn-outline-secondary">
+                            <i class="bi bi-printer"></i> Tisknout kalendář
+                        </a>
+                    <?php endif; ?>
                 </div>
                 <div class="view-toggle btn-group" role="group">
                     <input type="radio" class="btn-check" name="viewMode" id="viewCalendar" checked>

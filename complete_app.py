@@ -1003,9 +1003,8 @@ BASE_TEMPLATE = '''
             }
         }
         
-        function deleteApp() {
-            const appId = document.getElementById('editAppId').value;
-            if (confirm('Opravdu chcete smazat tuto aplikaci? Tato akce je nevratná!')) {
+        function deleteApp(appId, appName) {
+            if (confirm('Opravdu chcete smazat aplikaci "' + appName + '"? Tato akce je nevratná!')) {
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = '/admin/delete_app';
@@ -1769,7 +1768,14 @@ def delete_app():
         flash('Nemate opravneni!', 'error')
         return redirect(url_for('index'))
     
-    app_id = int(request.form.get('app_id'))
+    app_id_str = request.form.get('app_id', '')
+    
+    # Validace app_id
+    if not app_id_str or not app_id_str.isdigit():
+        flash('Neplatne ID aplikace!', 'error')
+        return redirect(url_for('index'))
+    
+    app_id = int(app_id_str)
     
     # Najdeme a smazeme aplikaci
     global APPLICATIONS
@@ -2155,8 +2161,9 @@ def admin_add_application():
         'type': 'php' if request.form.get('folder') else 'external'
     }
     
-    applications.append(new_app)
-    save_applications(applications)
+    global APPLICATIONS
+    APPLICATIONS.append(new_app)
+    save_applications()
     
     flash('Aplikace byla úspěšně přidána.', 'success')
     return redirect(url_for('admin_applications'))
@@ -2166,9 +2173,9 @@ def admin_edit_application(app_id):
     if 'user_id' not in session or session.get('role') != 'admin':
         return redirect(url_for('login'))
     
-    applications = load_applications()
+    global APPLICATIONS
     
-    for app in applications:
+    for app in APPLICATIONS:
         if app['id'] == app_id:
             app['name'] = request.form.get('name')
             app['icon'] = request.form.get('icon')
@@ -2180,7 +2187,7 @@ def admin_edit_application(app_id):
             app['visible_for_admin'] = 'visible_for_admin' in request.form
             break
     
-    save_applications(applications)
+    save_applications()
     
     flash('Aplikace byla úspěšně upravena.', 'success')
     return redirect(url_for('admin_applications'))
@@ -2190,10 +2197,10 @@ def admin_delete_application(app_id):
     if 'user_id' not in session or session.get('role') != 'admin':
         return jsonify({'error': 'Unauthorized'}), 403
     
+    global APPLICATIONS
     app_id = int(app_id)  # Převod z URL parametru na int
-    applications = load_applications()
-    applications = [app for app in applications if app['id'] != app_id]
-    save_applications(applications)
+    APPLICATIONS = [app for app in APPLICATIONS if app['id'] != app_id]
+    save_applications()
     
     return jsonify({'success': True})
 
@@ -3962,13 +3969,6 @@ def load_applications():
         with open('data_applications.json', 'r', encoding='utf-8') as f:
             return json.load(f)
     return []
-
-def save_applications(applications):
-    """Uloží aplikace do souboru a aktualizuje globální proměnnou."""
-    global APPLICATIONS
-    with open('data_applications.json', 'w', encoding='utf-8') as f:
-        json.dump(applications, f, ensure_ascii=False, indent=2)
-    APPLICATIONS[:] = applications
 
 def load_data():
     """Načte data ze souborů při startu aplikace."""

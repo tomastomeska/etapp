@@ -117,6 +117,15 @@ foreach ($vacations as $vac) {
                 <p class="mb-0">Správa žádostí a přídělů dovolené</p>
             </div>
             <div>
+                <a href="print_vacations.php?status=pending" target="_blank" class="btn btn-outline-primary me-2">
+                    <i class="bi bi-printer"></i> Tisk ke schválení
+                </a>
+                <a href="print_vacations.php?status=approved" target="_blank" class="btn btn-outline-success me-2">
+                    <i class="bi bi-printer"></i> Tisk schválených
+                </a>
+                <a href="print_vacations.php?status=rejected" target="_blank" class="btn btn-outline-danger me-2">
+                    <i class="bi bi-printer"></i> Tisk zamítnutých
+                </a>
                 <a href="index.php" class="btn btn-light">
                     <i class="bi bi-arrow-left"></i> Zpět na přehled
                 </a>
