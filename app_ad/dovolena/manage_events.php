@@ -1,22 +1,13 @@
 <?php
 // Správa celozávodních událostí
 
-// Ověření přihlášení
-if (isset($_SERVER['HTTP_X_USER_ID'])) {
-    $userData = [
-        'id' => $_SERVER['HTTP_X_USER_ID'],
-        'email' => $_SERVER['HTTP_X_USER_EMAIL'],
-        'full_name' => base64_decode($_SERVER['HTTP_X_USER_NAME']),
-        'role' => $_SERVER['HTTP_X_USER_ROLE'],
-        'username' => $_SERVER['HTTP_X_USER_USERNAME']
-    ];
-} else {
-    die('Přístup odepřen');
-}
+// Autentifikace uživatele
+require_once __DIR__ . '/auth.php';
 
-// Kontrola oprávnění - pouze admin nebo administrativa
-if ($userData['role'] !== 'admin' && $userData['role'] !== 'administrativa') {
-    die('Nemáte oprávnění pro správu událostí');
+// Kontrola oprávnění - pouze admin
+if (!$isAdmin) {
+    header('Location: index.php');
+    exit;
 }
 
 // Načtení událostí

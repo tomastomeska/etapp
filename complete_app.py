@@ -4047,6 +4047,10 @@ def app_ad_files(filename):
             'X-User-Username': user['username']
         }
         
+        # Předat cookies z prohlížeče do Apache (důležité pro PHP session)
+        if 'Cookie' in request.headers:
+            headers['Cookie'] = request.headers.get('Cookie')
+        
         try:
             # POST data
             if request.method == 'POST':
@@ -4071,7 +4075,14 @@ def app_ad_files(filename):
                 content = response.read()
                 content_type = response.headers.get('Content-Type', 'text/html')
                 
-                return content, 200, {'Content-Type': content_type}
+                # Získat cookies z Apache response a předat je do Flask response
+                response_headers = {'Content-Type': content_type}
+                
+                # Předat Set-Cookie headers z Apache
+                if 'Set-Cookie' in response.headers:
+                    response_headers['Set-Cookie'] = response.headers['Set-Cookie']
+                
+                return content, 200, response_headers
                 
         except Exception as e:
             flash(f'Chyba při načítání aplikace: {str(e)}', 'error')

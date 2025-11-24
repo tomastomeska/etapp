@@ -1,20 +1,10 @@
 <?php
 // Zpracování přihlášek na celozávodní události
 
-// Získání informací o přihlášeném uživateli z Flask proxy (HTTP headers)
-$userData = null;
+// Autentifikace uživatele
+require_once __DIR__ . '/auth.php';
 
-if (isset($_SERVER['HTTP_X_USER_ID'])) {
-    $userData = [
-        'id' => $_SERVER['HTTP_X_USER_ID'],
-        'email' => $_SERVER['HTTP_X_USER_EMAIL'],
-        'full_name' => base64_decode($_SERVER['HTTP_X_USER_NAME']),
-        'role' => $_SERVER['HTTP_X_USER_ROLE'],
-        'username' => $_SERVER['HTTP_X_USER_USERNAME']
-    ];
-}
-
-if (!$userData || $_SERVER['REQUEST_METHOD'] !== 'POST') {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: index.php');
     exit;
 }

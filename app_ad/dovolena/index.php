@@ -1,28 +1,6 @@
 <?php
-// Získání informací o přihlášeném uživateli z Flask proxy (HTTP headers)
-$userData = null;
-
-if (isset($_SERVER['HTTP_X_USER_ID'])) {
-    // Data přišla z Flask proxy - dekódovat base64
-    $userData = [
-        'id' => $_SERVER['HTTP_X_USER_ID'],
-        'email' => $_SERVER['HTTP_X_USER_EMAIL'],
-        'full_name' => base64_decode($_SERVER['HTTP_X_USER_NAME']),
-        'role' => $_SERVER['HTTP_X_USER_ROLE'],
-        'username' => $_SERVER['HTTP_X_USER_USERNAME']
-    ];
-}
-
-// Pokud není přihlášen, přesměruj na hlavní aplikaci
-if (!$userData) {
-    header('Location: http://localhost:5004/login');
-    exit;
-}
-
-$isAdmin = in_array($userData['role'], ['admin', 'administrativa']);
-$userId = $userData['id'];
-$userName = $userData['full_name'];
-$userRole = $userData['role'];
+// Autentifikace uživatele
+require_once __DIR__ . '/auth.php';
 
 // Cesty k datovým souborům
 $vacationsFile = __DIR__ . '/data/vacations.json';
@@ -310,8 +288,8 @@ function isHoliday($date, $holidays) {
                             <i class="bi bi-gear"></i> Administrace
                         </a>
                     <?php endif; ?>
-                    <a href="http://localhost:5004/dashboard" class="btn btn-light me-2">
-                        <i class="bi bi-house"></i> Dashboard
+                    <a href="http://localhost:5004/" class="btn btn-light me-2">
+                        <i class="bi bi-arrow-left"></i> Odejít z aplikace
                     </a>
                     <a href="http://localhost:5004/logout" class="btn btn-outline-light">
                         <i class="bi bi-box-arrow-right"></i> Odhlásit
