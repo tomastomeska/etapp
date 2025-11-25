@@ -1,8 +1,14 @@
 @echo off
+@echo off
 echo ============================================================
 echo    European Transport CZ - Spousteci skript
 echo ============================================================
 echo.
+echo Prihlasovaci udaje:
+echo Email: tomeska@european.cz
+echo Heslo: 20tomeska17
+echo.
+echo ============================================================
 
 cd /d "%~dp0"
 
