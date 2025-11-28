@@ -2219,7 +2219,7 @@ def users():
             # Tlačítka pro smazané uživatele
             username_escaped = user['username'].replace("\\", "\\\\").replace("'", "\\'").replace('"', "&quot;")
             action_buttons = f'''
-                <button class="btn btn-success btn-sm" onclick="restoreUser({user['id']}, '{username_escaped}')">
+                <button class="btn btn-success btn-sm" onclick="restoreUser({user["id"]}, '{username_escaped}')">
                     <i class="bi bi-arrow-counterclockwise"></i> Obnovit
                 </button>
             '''
@@ -2231,13 +2231,13 @@ def users():
             email_escaped = user['email'].replace("\\", "\\\\").replace("'", "\\'").replace('"', "&quot;")
             avatar_escaped = user.get('avatar', '').replace("\\", "\\\\").replace("'", "\\'").replace('"', "&quot;")
             
-            message_button = f'<button class="btn btn-outline-info btn-sm" onclick="sendMessageToUser({user['id']}, \'{full_name_escaped}\')"><i class="bi bi-envelope"></i></button>'
-            delete_button = f'<button class="btn btn-outline-danger btn-sm" onclick="deleteUser({user['id']}, \'{username_escaped}\')"><i class="bi bi-trash"></i></button>' if user['id'] != session.get('user_id') else '<span class="text-muted small">Vlastní</span>'
+            message_button = f'<button class="btn btn-outline-info btn-sm" onclick="sendMessageToUser({user["id"]}, \'{full_name_escaped}\')"><i class="bi bi-envelope"></i></button>'
+            delete_button = f'<button class="btn btn-outline-danger btn-sm" onclick="deleteUser({user["id"]}, \'{username_escaped}\')"><i class="bi bi-trash"></i></button>' if user['id'] != session.get('user_id') else '<span class="text-muted small">Vlastní</span>'
             
             action_buttons = f'''
                 <div class="btn-group btn-group-sm">
                     {message_button}
-                    <button class="btn btn-outline-primary btn-sm" onclick="editUser({user['id']}, '{username_escaped}', '{email_escaped}', '{full_name_escaped}', '{user['role']}', '{avatar_escaped}', {str(user.get('active', True)).lower()})">
+                    <button class="btn btn-outline-primary btn-sm" onclick="editUser({user["id"]}, '{username_escaped}', '{email_escaped}', '{full_name_escaped}', '{user["role"]}', '{avatar_escaped}', {str(user.get('active', True)).lower()})">
                         <i class="bi bi-pencil"></i>
                     </button>
                     {delete_button}
