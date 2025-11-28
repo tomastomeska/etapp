@@ -1261,7 +1261,7 @@ def index():
                         {admin_buttons}
                     </div>
                     <div onclick="event.stopPropagation();">
-                        {f'<button class="btn btn-sm btn-outline-success" onclick="markMessageRead({message['id']})"><i class="bi bi-check"></i></button>' if not is_read else '<small class="text-success"><i class="bi bi-check2-circle"></i> Přečteno</small>'}
+                        {f'<button class="btn btn-sm btn-outline-success" onclick="markMessageRead({message["id"]})"><i class="bi bi-check"></i></button>' if not is_read else '<small class="text-success"><i class="bi bi-check2-circle"></i> Přečteno</small>'}
                     </div>
                 </div>
             </div>
