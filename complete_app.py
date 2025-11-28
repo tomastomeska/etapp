@@ -1393,23 +1393,7 @@ def index():
                         <li><i class="bi bi-envelope"></i> Nepřečtené zprávy: {unread_messages}</li>
                         <li><i class="bi bi-clock"></i> Online: {datetime.now().strftime("%H:%M")}</li>
                     </ul>
-                    {f'''<div class="mt-3">
-                        <h6 class="text-muted text-uppercase mb-3" style="font-size: 0.7rem; letter-spacing: 0.05em; font-weight: 600;">Administrace</h6>
-                        <div class="d-grid gap-2">
-                            <a href="/users" class="btn btn-light text-start d-flex align-items-center py-2 px-3" style="border: 1px solid var(--border-color); border-radius: 8px; transition: all 0.2s;">
-                                <i class="bi bi-people" style="font-size: 1.1rem; color: var(--primary-blue); width: 24px;"></i>
-                                <span class="ms-2" style="font-size: 0.9rem; font-weight: 500;">Správa uživatelů</span>
-                            </a>
-                            <a href="/admin/applications" class="btn btn-light text-start d-flex align-items-center py-2 px-3" style="border: 1px solid var(--border-color); border-radius: 8px; transition: all 0.2s;">
-                                <i class="bi bi-grid-3x3-gap" style="font-size: 1.1rem; color: var(--primary-blue); width: 24px;"></i>
-                                <span class="ms-2" style="font-size: 0.9rem; font-weight: 500;">Správa aplikací</span>
-                            </a>
-                            <a href="/admin/deleted-comments" class="btn btn-light text-start d-flex align-items-center py-2 px-3" style="border: 1px solid var(--border-color); border-radius: 8px; transition: all 0.2s;">
-                                <i class="bi bi-trash" style="font-size: 1.1rem; color: #ef4444; width: 24px;"></i>
-                                <span class="ms-2" style="font-size: 0.9rem; font-weight: 500;">Smazané komentáře</span>
-                            </a>
-                        </div>
-                    </div>''' if is_admin else ''}
+                    {'<div class="mt-3"><h6 class="text-muted text-uppercase mb-3" style="font-size: 0.7rem; letter-spacing: 0.05em; font-weight: 600;">Administrace</h6><div class="d-grid gap-2"><a href="/users" class="btn btn-light text-start d-flex align-items-center py-2 px-3" style="border: 1px solid var(--border-color); border-radius: 8px; transition: all 0.2s;"><i class="bi bi-people" style="font-size: 1.1rem; color: var(--primary-blue); width: 24px;"></i><span class="ms-2" style="font-size: 0.9rem; font-weight: 500;">Správa uživatelů</span></a><a href="/admin/applications" class="btn btn-light text-start d-flex align-items-center py-2 px-3" style="border: 1px solid var(--border-color); border-radius: 8px; transition: all 0.2s;"><i class="bi bi-grid-3x3-gap" style="font-size: 1.1rem; color: var(--primary-blue); width: 24px;"></i><span class="ms-2" style="font-size: 0.9rem; font-weight: 500;">Správa aplikací</span></a><a href="/admin/deleted-comments" class="btn btn-light text-start d-flex align-items-center py-2 px-3" style="border: 1px solid var(--border-color); border-radius: 8px; transition: all 0.2s;"><i class="bi bi-trash" style="font-size: 1.1rem; color: #ef4444; width: 24px;"></i><span class="ms-2" style="font-size: 0.9rem; font-weight: 500;">Smazané komentáře</span></a></div></div>' if is_admin else ''}
                 </div>
             </div>
         </div>
@@ -3128,11 +3112,7 @@ def news_detail(news_id):
                 <div class="mt-2" id="comment-text-{comment_id}">
                     <p class="mb-0" style="white-space: pre-wrap;">{comment['text']}</p>
                 </div>
-                {f'''
-                <button class="btn btn-sm btn-link text-decoration-none p-0 mt-1" onclick="toggleReplies({comment_id})" id="toggle-btn-{comment_id}">
-                    <i class="bi bi-chevron-down" id="toggle-icon-{comment_id}"></i> {len(comment.get('replies', []))} {'odpověď' if len(comment.get('replies', [])) == 1 else 'odpovědi' if len(comment.get('replies', [])) < 5 else 'odpovědí'}
-                </button>
-                ''' if comment.get('replies') and len(comment.get('replies', [])) > 0 else ''}
+                {('<button class="btn btn-sm btn-link text-decoration-none p-0 mt-1" onclick="toggleReplies(' + str(comment_id) + ')" id="toggle-btn-' + str(comment_id) + '"><i class="bi bi-chevron-down" id="toggle-icon-' + str(comment_id) + '"></i> ' + str(len(comment.get('replies', []))) + (' odpověď' if len(comment.get('replies', [])) == 1 else ' odpovědi' if len(comment.get('replies', [])) < 5 else ' odpovědí') + '</button>') if comment.get('replies') and len(comment.get('replies', [])) > 0 else ''}
                 <div id="edit-form-{comment_id}" style="display: none;">
                     <form method="POST" action="/news/{news_id}/comment/{comment_id}/edit">
                         <textarea class="form-control form-control-sm mb-2" name="text" rows="3" required>{comment['text']}</textarea>
