@@ -3105,7 +3105,7 @@ def news_detail(news_id):
                         <button class="btn btn-outline-primary btn-sm" onclick="showReplyForm({comment_id}, '{comment['author']}')">
                             <i class="bi bi-reply"></i>
                         </button>
-                        {f'<button class="btn btn-outline-secondary btn-sm" onclick="editComment({comment_id}, \'{comment["text"].replace("'", "\\'").replace(chr(10), "\\n")}\')"><i class="bi bi-pencil"></i></button>' if is_owner else ''}
+                        {('<button class="btn btn-outline-secondary btn-sm" onclick="editComment(' + str(comment_id) + ', \\'' + comment["text"].replace("'", "\\\\'").replace("\\n", "\\\\n") + '\\')"><i class="bi bi-pencil"></i></button>') if is_owner else ''}
                         {f'<button class="btn btn-outline-danger btn-sm" onclick="showDeleteModal({comment_id})"><i class="bi bi-trash"></i></button>' if is_admin_user else ''}
                     </div>
                 </div>
