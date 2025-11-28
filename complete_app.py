@@ -1235,17 +1235,17 @@ def index():
             content_escaped = message.get('content', '').replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n')
             admin_buttons = f'''
             <div class="btn-group btn-group-sm mt-2">
-                <button class="btn btn-outline-primary btn-sm" onclick="editMessage({message['id']}, '{subject_escaped}', '{content_escaped}'); event.stopPropagation();">
+                <button class="btn btn-outline-primary btn-sm" onclick="editMessage({message["id"]}, '{subject_escaped}', '{content_escaped}'); event.stopPropagation();">
                     <i class="bi bi-pencil"></i>
                 </button>
-                <button class="btn btn-outline-danger btn-sm" onclick="deleteMessage({message['id']}, '{subject_escaped}'); event.stopPropagation();">
+                <button class="btn btn-outline-danger btn-sm" onclick="deleteMessage({message["id"]}, '{subject_escaped}'); event.stopPropagation();">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
             '''
         
         messages_html += f'''
-        <div class="card mb-2 message-item {unread_class}" style="cursor: pointer;" onclick="window.location.href='/message/{message['id']}'">
+        <div class="card mb-2 message-item {unread_class}" style="cursor: pointer;" onclick="window.location.href='/message/{message["id"]}'">
             <div class="card-body p-2">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1">
@@ -2839,10 +2839,10 @@ def message_detail(message_id):
         content_escaped = message.get('content', '').replace("\\", "\\\\").replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n')
         admin_buttons = f'''
         <div class="btn-group mt-3">
-            <button class="btn btn-outline-primary" onclick="editMessage({message['id']}, '{subject_escaped}', '{content_escaped}')">
+            <button class="btn btn-outline-primary" onclick="editMessage({message["id"]}, '{subject_escaped}', '{content_escaped}')">
                 <i class="bi bi-pencil"></i> Upravit
             </button>
-            <button class="btn btn-outline-danger" onclick="deleteMessage({message['id']}, '{subject_escaped}')">
+            <button class="btn btn-outline-danger" onclick="deleteMessage({message["id"]}, '{subject_escaped}')">
                 <i class="bi bi-trash"></i> Smazat
             </button>
         </div>
@@ -3874,7 +3874,7 @@ def messages_archive():
                     <h5 class="card-title mb-0">
                         <i class="bi bi-envelope"></i> {message.get('subject', 'Bez předmětu')} {unread_badge}
                     </h5>
-                    {f'<button class="btn btn-sm btn-outline-success" onclick="markMessageRead({message['id']})"><i class="bi bi-check"></i> Označit jako přečtené</button>' if not is_read else '<small class="text-success"><i class="bi bi-check2-circle"></i> Přečteno</small>'}
+                    {f'<button class="btn btn-sm btn-outline-success" onclick="markMessageRead({message["id"]})"><i class="bi bi-check"></i> Označit jako přečtené</button>' if not is_read else '<small class="text-success"><i class="bi bi-check2-circle"></i> Přečteno</small>'}
                 </div>
                 <p class="card-text">{message.get('content', '')}</p>
                 <div class="d-flex justify-content-between">
