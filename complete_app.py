@@ -3093,6 +3093,10 @@ def news_detail(news_id):
         
         edit_time = f" (upraveno {comment.get('edited_at', '')})" if comment.get('edited') else ""
         
+        # Prepare escaped text for JavaScript
+        comment_text_escaped = comment["text"].replace("'", "\\'").replace("\n", "\\n")
+        edit_button_html = f'<button class="btn btn-outline-secondary btn-sm" onclick="editComment({comment_id}, \'{comment_text_escaped}\')"><i class="bi bi-pencil"></i></button>' if is_owner else ''
+        
         comment_html = f'''
         <div class="card mb-2" style="{margin_left}" id="comment-{comment_id}">
             <div class="card-body p-2">
@@ -3105,7 +3109,7 @@ def news_detail(news_id):
                         <button class="btn btn-outline-primary btn-sm" onclick="showReplyForm({comment_id}, '{comment['author']}')">
                             <i class="bi bi-reply"></i>
                         </button>
-                        {('<button class="btn btn-outline-secondary btn-sm" onclick="editComment(' + str(comment_id) + ', \\'' + comment["text"].replace("'", "\\\\'").replace("\\n", "\\\\n") + '\\')"><i class="bi bi-pencil"></i></button>') if is_owner else ''}
+                        {edit_button_html}
                         {f'<button class="btn btn-outline-danger btn-sm" onclick="showDeleteModal({comment_id})"><i class="bi bi-trash"></i></button>' if is_admin_user else ''}
                     </div>
                 </div>
