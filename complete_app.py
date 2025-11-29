@@ -1626,6 +1626,9 @@ def edit_profile():
     if new_password:
         USERS[user_id]['password'] = generate_password_hash(new_password)
     
+    # Uložení změn do souboru
+    save_users()
+    
     # Aktualizace session
     session['username'] = username
     session['full_name'] = full_name
