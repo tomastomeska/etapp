@@ -3,6 +3,14 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Data files - nebudou se verzovat, aby se nepřepsaly při git pull
+data_users.json
+data_news.json
+data_messages.json
+data_applications.json
+app_ad/dovolena/data/*.json
+data/*.json
+
 # C extensions
 *.so
 
