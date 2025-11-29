@@ -1577,6 +1577,10 @@ def edit_profile():
     new_password = request.form.get('new_password', '')
     confirm_password = request.form.get('confirm_password', '')
     
+    # Debug - výpis formulářových dat
+    print(f"DEBUG edit_profile: first_name='{first_name}', last_name='{last_name}', email='{email}'")
+    print(f"DEBUG form keys: {list(request.form.keys())}")
+    
     # Sestavení celého jména
     full_name = f"{first_name} {last_name}".strip() if last_name else first_name
     
