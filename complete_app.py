@@ -1568,32 +1568,30 @@ def edit_profile():
         session.clear()
         return redirect(url_for('login'))
     
-    username = request.form.get('username', '').strip()
-    full_name = request.form.get('full_name', '').strip()
+    # Získání dat z formuláře
+    first_name = request.form.get('first_name', '').strip()
+    last_name = request.form.get('last_name', '').strip()
     email = request.form.get('email', '').lower().strip()
+    avatar = request.form.get('avatar', '').strip()
     current_password = request.form.get('current_password', '')
     new_password = request.form.get('new_password', '')
     confirm_password = request.form.get('confirm_password', '')
     
-    # Validace
-    if not username:
-        flash('Uživatelské jméno je povinné!', 'error')
-        return redirect(url_for('index'))
+    # Sestavení celého jména
+    full_name = f"{first_name} {last_name}".strip() if last_name else first_name
     
-    if not full_name:
-        flash('Celé jméno je povinné!', 'error')
+    # Validace
+    if not first_name:
+        flash('Jméno je povinné!', 'error')
         return redirect(url_for('index'))
         
     if not email:
         flash('Email je povinný!', 'error')
         return redirect(url_for('index'))
     
-    # Kontrola duplicit (kromě současného uživatele)
+    # Kontrola duplicit emailu (kromě současného uživatele)
     for uid, u in USERS.items():
         if uid != user_id:
-            if u['username'] == username:
-                flash('Toto uživatelské jméno už používá jiný uživatel!', 'error')
-                return redirect(url_for('index'))
             if u['email'] == email:
                 flash('Tento email už používá jiný uživatel!', 'error')
                 return redirect(url_for('index'))
@@ -1618,10 +1616,13 @@ def edit_profile():
     
     # Aktualizace dat
     USERS[user_id].update({
-        'username': username,
         'full_name': full_name,
         'email': email
     })
+    
+    # Aktualizace avatara (pouze pro adminy)
+    if avatar and session.get('role') == 'admin':
+        USERS[user_id]['avatar'] = avatar
     
     if new_password:
         USERS[user_id]['password'] = generate_password_hash(new_password)
@@ -1630,7 +1631,6 @@ def edit_profile():
     save_users()
     
     # Aktualizace session
-    session['username'] = username
     session['full_name'] = full_name
     
     flash('Profil byl úspěšně aktualizován!', 'success')
