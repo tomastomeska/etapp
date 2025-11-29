@@ -4077,7 +4077,7 @@ def app_ad_files(filename):
                 
         except Exception as e:
             flash(f'Chyba při načítání aplikace: {str(e)}', 'error')
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('index'))
     
     # Pro ostatní soubory (CSS, JS, obrázky) jen pošli
     import os
